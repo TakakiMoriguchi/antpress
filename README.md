@@ -56,8 +56,25 @@ admin（運営者）
 | [`docs/API-GUIDE.md`](docs/API-GUIDE.md) | 配信 API の実装ガイド（HP 構築時に読む） |
 | [`docs/TECH-NOTES.md`](docs/TECH-NOTES.md) | 判断材料の記録（なぜその選定になったか） |
 
+## 開発
+
+ツールのバージョンは `mise.toml` で固定してある（Erlang 28 / Elixir 1.20 / Node 24）。
+
+```sh
+mise install          # 初回のみ
+mix deps.get
+cp .env.example .env  # 値を埋める
+mix ecto.create
+mix phx.server
+```
+
 ## 状態
 
-設計フェーズ完了。実装は未着手。
+Phoenix プロジェクトの初期化まで完了。機能実装は未着手。
 
 実装順序は [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) の 6 章を参照。
+
+## AI エージェント向け
+
+[`CLAUDE.md`](CLAUDE.md)（プロジェクト固有のルール）と
+[`AGENTS.md`](AGENTS.md)（Phoenix / Elixir の作法・Phoenix 生成）を参照。
