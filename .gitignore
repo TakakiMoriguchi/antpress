@@ -1,0 +1,27 @@
+# ─── シークレット（最優先）───────────────────────────
+# Supabase の接続情報、Anthropic API キーの暗号鍵、Resend の API キーなど
+.env
+.env.*
+!.env.example
+
+# ─── Elixir / Phoenix ──────────────────────────────
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+/tmp/
+antpress-*.tar
+
+# ビルド生成物
+/priv/static/assets/
+/priv/static/cache_manifest.json
+
+# Node（assets のビルドツール）
+npm-debug.log
+/assets/node_modules/
+
+# ─── macOS ────────────────────────────────────────
+.DS_Store
