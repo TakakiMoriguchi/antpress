@@ -101,6 +101,20 @@ mix phx.server         # http://localhost:4001
 | Phoenix（dev） | **4001** | 4000 は別アプリ（JapanTicket PRESTIGE Manager）が使用中 |
 | Phoenix（test） | 4002 | — |
 
+### ⚠️ 設定ファイルを触ったらサーバーを再起動する
+
+`config/*.exs` を編集すると、コードリローダーは**リロードでは対応できず**
+ブラウザに `could not compile application: antpress` を出して止まる。
+
+**`mix format` が設定ファイルを整形するだけでも起きる。** 順序に注意:
+
+```sh
+# ✅ 正しい順序
+mix format && mix compile && mix phx.server
+
+# ❌ サーバー起動後に mix format すると config/*.exs が整形されて止まる
+```
+
 ### ⚠️ 開発サーバーのポートは `dev.exs` では変えられない
 
 `config/runtime.exs` に**環境ガードなし**のポート設定があり、`dev.exs` より
