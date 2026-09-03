@@ -9,6 +9,8 @@ defmodule AntPress.Application do
   def start(_type, _args) do
     children = [
       AntPressWeb.Telemetry,
+      # Vault は Repo より先に起動する（暗号化フィールドの読み書きで使われるため）
+      AntPress.Vault,
       AntPress.Repo,
       {DNSCluster, query: Application.get_env(:antpress, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: AntPress.PubSub},

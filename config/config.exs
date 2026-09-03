@@ -7,6 +7,19 @@
 # General application configuration
 import Config
 
+config :antpress, :scopes,
+  developer: [
+    default: true,
+    module: AntPress.Platform.Scope,
+    assign_key: :current_developer,
+    access_path: [:developer, :id],
+    schema_key: :developer_id,
+    schema_type: :binary_id,
+    schema_table: :developers,
+    test_data_fixture: AntPress.PlatformFixtures,
+    test_setup_helper: :register_and_log_in_developer
+  ]
+
 config :antpress,
   namespace: AntPress,
   ecto_repos: [AntPress.Repo],

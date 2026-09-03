@@ -129,7 +129,15 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
 ### 命名
 
 - ブログ領域のテーブルは **`blog_` 接頭辞**: `blog_articles`, `blog_categories`
-- コンテキストは `AntPress.Blog`。将来 EC は `AntPress.Commerce`
+- コンテキスト構成（3 階層モデルの各層に対応）:
+
+  | コンテキスト | 扱うもの |
+  | --- | --- |
+  | `AntPress.Platform` | `developers`（admin / developer） |
+  | `AntPress.Tenancy` | `clients`（テナント） |
+  | `AntPress.Accounts` | `users`（owner / staff） |
+  | `AntPress.Blog` | `blog_articles`, `blog_categories` |
+  | （将来）`AntPress.Commerce` | EC |
 - 外部キー列は `article_id`（`blog_article_id` にしない。Ecto の慣例に従う）
 - 主キーは**全テーブル UUID**（`--binary-id` で生成済み）
 - スラッグの一意制約は **`UNIQUE (client_id, slug)`**。グローバル一意にしない
@@ -173,6 +181,23 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
 - 転送先は `clients.contact_notification_email`
 - フォーム項目は `hidden / optional / required` の enum。
   boolean 2 つにしない（「非表示かつ必須」を型で排除している）
+
+### 認証
+
+`mix phx.gen.auth`（Phoenix 1.8）の生成コードを使う。**マジックリンク優先、パスワードは任意。**
+
+- **セルフサインアップは実装しない。** 生成された `/developers/register` は削除済み。
+  復活させないこと。作成経路は seed（最初の admin）と admin 発行のみ
+- ⚠️ **パスワードを設定するなら `confirmed_at` も必ず入れる。**
+  「未確認かつパスワード設定済み」はマジックリンクログインが `raise` する
+- `--assign-key` で分けているので、レイアウトの attr は
+  `current_developer`（将来 `current_user` も追加）。`current_scope` ではない
+- パスワードハッシュは **bcrypt**（argon2 は Fly.io の小インスタンスに重い）
+
+```sh
+# 最初の admin を作る
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
+```
 
 ### 言語
 

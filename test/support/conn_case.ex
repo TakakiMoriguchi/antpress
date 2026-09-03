@@ -35,4 +35,45 @@ defmodule AntPressWeb.ConnCase do
     AntPress.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
+
+  @doc """
+  Setup helper that registers and logs in developers.
+
+      setup :register_and_log_in_developer
+
+  It stores an updated connection and a registered developer in the
+  test context.
+  """
+  def register_and_log_in_developer(%{conn: conn} = context) do
+    developer = AntPress.PlatformFixtures.developer_fixture()
+    scope = AntPress.Platform.Scope.for_developer(developer)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_developer(conn, developer, opts), developer: developer, scope: scope}
+  end
+
+  @doc """
+  Logs the given `developer` into the `conn`.
+
+  It returns an updated `conn`.
+  """
+  def log_in_developer(conn, developer, opts \\ []) do
+    token = AntPress.Platform.generate_developer_session_token(developer)
+
+    maybe_set_token_authenticated_at(token, opts[:token_authenticated_at])
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:developer_token, token)
+  end
+
+  defp maybe_set_token_authenticated_at(_token, nil), do: nil
+
+  defp maybe_set_token_authenticated_at(token, authenticated_at) do
+    AntPress.PlatformFixtures.override_token_authenticated_at(token, authenticated_at)
+  end
 end

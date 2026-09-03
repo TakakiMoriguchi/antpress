@@ -31,6 +31,13 @@ defmodule AntPressWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
+  # phx.gen.auth を --assign-key current_developer で実行したため、
+  # 生成された LiveView はこの名前で渡してくる。
+  # クライアント側の認証を生成したら current_user も追加する。
+  attr :current_developer, :map,
+    default: nil,
+    doc: "ログイン中の developer（role: admin を含む）"
+
   slot :inner_block, required: true
 
   def app(assigns) do

@@ -38,6 +38,23 @@
     </script>
   </head>
   <body>
+    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+      <%= if @current_developer do %>
+        <li>
+          {@current_developer.developer.email}
+        </li>
+        <li>
+          <.link href={~p"/developers/settings"}>Settings</.link>
+        </li>
+        <li>
+          <.link href={~p"/developers/log-out"} method="delete">Log out</.link>
+        </li>
+      <% else %>
+        <li>
+          <.link href={~p"/developers/log-in"}>Log in</.link>
+        </li>
+      <% end %>
+    </ul>
     {@inner_content}
   </body>
 </html>

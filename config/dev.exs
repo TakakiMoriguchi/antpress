@@ -78,3 +78,13 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Cloak（developer の Anthropic API キーの暗号化）
+# ⚠️ この鍵は開発専用。本番は runtime.exs が CLOAK_KEY 環境変数から読む。
+#    Phoenix が dev.exs に secret_key_base を含めるのと同じ扱い。
+config :antpress, AntPress.Vault,
+  ciphers: [
+    default:
+      {Cloak.Ciphers.AES.GCM,
+       tag: "AES.GCM.V1", key: Base.decode64!("tdU4+aIRcQ2eR6hU29WO0l2pKOxjina79G9c19IN+7U=")}
+  ]

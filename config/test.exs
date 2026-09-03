@@ -1,5 +1,8 @@
 import Config
 
+# Only in tests, remove the complexity from the password hashing algorithm
+config :bcrypt_elixir, :log_rounds, 1
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
@@ -40,3 +43,13 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Cloak（developer の Anthropic API キーの暗号化）
+# ⚠️ この鍵は開発専用。本番は runtime.exs が CLOAK_KEY 環境変数から読む。
+#    Phoenix が dev.exs に secret_key_base を含めるのと同じ扱い。
+config :antpress, AntPress.Vault,
+  ciphers: [
+    default:
+      {Cloak.Ciphers.AES.GCM,
+       tag: "AES.GCM.V1", key: Base.decode64!("tdU4+aIRcQ2eR6hU29WO0l2pKOxjina79G9c19IN+7U=")}
+  ]

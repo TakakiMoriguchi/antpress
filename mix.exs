@@ -40,6 +40,9 @@ defmodule AntPress.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
+      # developer の Anthropic API キーを暗号化して保存するため（可逆・ハッシュ不可）
+      {:cloak_ecto, "~> 1.3"},
       {:phoenix, "~> 1.8.13"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},

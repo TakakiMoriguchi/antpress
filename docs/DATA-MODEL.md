@@ -77,6 +77,9 @@ end
 **Phoenix のコンテキストと対応する。**
 
 ```
+AntPress.Platform  → developers, developers_tokens   （admin / developer）
+AntPress.Tenancy   → clients                          （テナント）
+AntPress.Accounts  → users, users_tokens              （owner / staff）
 AntPress.Blog      → blog_articles, blog_categories
 AntPress.Commerce  → （将来）commerce_products, commerce_categories, ...
 ```
@@ -147,10 +150,10 @@ erDiagram
 | カラム | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | `id` | uuid | PK | |
-| `role` | enum | not null | `admin` / `developer` |
+| `role` | enum | not null, default `developer` | `admin` / `developer`。DB 側に CHECK 制約も張る |
 | `name` | string | not null | 屋号・氏名 |
-| `email` | string | not null, unique | |
-| `hashed_password` | string | not null | |
+| `email` | **citext** | not null, unique | 大文字小文字を区別しない（`phx.gen.auth` が採用） |
+| `hashed_password` | string | **nullable** | パスワードは**任意**（→ 下記） |
 | `anthropic_api_key` | binary | | **暗号化して保存**（→ 下記） |
 | `status` | enum | not null, default `active` | `active` / `suspended` |
 | `note` | text | | **admin 専用メモ**（契約日・年額・入金状況などの自由記述） |
@@ -168,6 +171,22 @@ erDiagram
   `users` はテナント側のアカウント。分けることで
   **「`users` のクエリは必ず `client_id` で絞る」という不変条件**が保てる
 - ログイン導線: `/log_in`（developer / admin 共通）と `/client/log_in`（→ `SCREENS.md`）
+
+#### 認証はマジックリンク優先、パスワードは任意
+
+`mix phx.gen.auth`（Phoenix 1.8）が生成する方式に合わせる。
+
+- **`hashed_password` は nullable。** メールのマジックリンクでログインでき、
+  パスワードは本人が任意で設定する
+- **セルフサインアップは行わない**（→ `DECISIONS.md` 1.3）。生成された
+  `/developers/register` は削除済み。作成経路は次の 2 つだけ:
+  1. 最初の admin → `priv/repo/seeds.exs`
+  2. 以降の developer → admin が発行（画面 A2）
+- ⚠️ **パスワードを設定するなら `confirmed_at` も必ず入れる。**
+  「未確認かつパスワード設定済み」の状態はマジックリンクログインが `raise` する
+  （credential pre-stuffing 対策。`mix help phx.gen.auth` 参照）
+- パスワードハッシュは **bcrypt**。argon2 はより堅牢だが CPU・メモリを多く要し、
+  Fly.io の小さいインスタンスに合わない
 
 #### ⚠️ Anthropic API キーは「暗号化」する。ハッシュではない
 
@@ -187,8 +206,16 @@ erDiagram
 
 ### 3.2 `developers_tokens`
 
+`mix phx.gen.auth` が生成する標準テーブル。
 
-`mix phx.gen.auth` が生成する標準テーブル（セッション / メール確認 / パスワード再設定）。
+| カラム | 型 | 用途 |
+| --- | --- | --- |
+| `token` | binary | ハッシュ化されたトークン |
+| `context` | string | 用途（`session` / `login` / `change:<email>`） |
+| `sent_to` | string | 送信先メール（メール変更の検証用） |
+| `authenticated_at` | utc_datetime | sudo モードの判定に使う |
+
+`Repo.delete_all` で失効させる設計なので `updated_at` は持たない。
 
 ### 3.3 `clients` — クライアント（テナント）
 

@@ -47,6 +47,19 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # ⚠️ この鍵が漏れると全 developer の Anthropic API キーが復号可能になる。
+  cloak_key =
+    System.get_env("CLOAK_KEY") ||
+      raise """
+      environment variable CLOAK_KEY is missing.
+      Generate one with: openssl rand -base64 32
+      """
+
+  config :antpress, AntPress.Vault,
+    ciphers: [
+      default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
+    ]
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
