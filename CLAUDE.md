@@ -80,6 +80,50 @@ def list_articles, do: Repo.all(Article)
 
 ---
 
+## ローカル開発環境
+
+ツールのバージョンは `mise.toml` で固定（Erlang 28 / Elixir 1.20 / Node 24）。
+コマンドは `mise exec -- mix ...` で実行する。
+
+```sh
+docker compose up -d   # PostgreSQL 17（ポート 5433）
+mix ecto.create
+mix phx.server         # http://localhost:4001
+```
+
+### ⚠️ このマシン固有のポート事情
+
+**既定値のままでは動かない。** 他プロジェクトと衝突するため以下にずらしてある。
+
+| 用途 | ポート | 衝突相手 |
+| --- | --- | --- |
+| PostgreSQL（dev） | **5433** | 5432 は `viajero` プロジェクトの pgvector が使用中 |
+| Phoenix（dev） | **4001** | 4000 は別アプリ（JapanTicket PRESTIGE Manager）が使用中 |
+| Phoenix（test） | 4002 | — |
+
+### ⚠️ 開発サーバーのポートは `dev.exs` では変えられない
+
+`config/runtime.exs` に**環境ガードなし**のポート設定があり、`dev.exs` より
+**後に読まれるため上書きする。**
+
+```elixir
+# config/runtime.exs — 全環境に適用される
+config :antpress, AntPressWeb.Endpoint,
+  http: [port: String.to_integer(System.get_env("PORT", "4001"))]
+```
+
+`config` はキーワードリストをマージするので、`dev.exs` の `ip` は残るが
+**`port` だけが差し替わる。** ポートを変えるなら **`runtime.exs` を直す。**
+
+### ⚠️ `docker-compose.yml` の `name: antpress` を消さないこと
+
+このディレクトリ名は `app` という汎用的な名前なので、`name` を省略すると
+Compose のプロジェクト名が `app` になり、**無関係な別プロジェクトのコンテナ
+（18 ヶ月前の `django_app` など）を掴んで再作成・削除しようとする。**
+
+コンテナ名も `antpress-dev-db` にしている。`antpress-db` は
+`/Users/tk2/Documents/antpress/api/` の別プロジェクトが使用中のため。
+
 ## 規約
 
 ### 命名

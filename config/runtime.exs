@@ -20,8 +20,14 @@ if System.get_env("PHX_SERVER") do
   config :antpress, AntPressWeb.Endpoint, server: true
 end
 
+# ⚠️ この設定は環境ガードなしで全環境に適用され、runtime.exs は dev.exs より
+#    後に読まれるため、dev.exs 側のポート指定を上書きする。
+#    開発用ポートを変えるならここを直すこと（dev.exs ではない）。
+#
+#    既定値を 4001 にしている理由: このマシンでは 4000 を別アプリが使用中。
+#    本番（Fly.io）では PORT が明示的に渡されるため既定値は使われない。
 config :antpress, AntPressWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+  http: [port: String.to_integer(System.get_env("PORT", "4001"))]
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.

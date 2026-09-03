@@ -5,6 +5,7 @@ config :antpress, AntPress.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
+  port: 5433,
   database: "antpress_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -19,6 +20,8 @@ config :antpress, AntPress.Repo,
 config :antpress, AntPressWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+  # ⚠️ HTTP ポートはここでは設定しない。config/runtime.exs が全環境で
+  #    後から http: [port: ...] を上書きするため、ここに書いても効かない。
   http: [ip: {127, 0, 0, 1}],
   check_origin: false,
   code_reloader: true,

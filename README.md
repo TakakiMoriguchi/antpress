@@ -61,12 +61,22 @@ admin（運営者）
 ツールのバージョンは `mise.toml` で固定してある（Erlang 28 / Elixir 1.20 / Node 24）。
 
 ```sh
-mise install          # 初回のみ
+mise install            # 初回のみ
 mix deps.get
-cp .env.example .env  # 値を埋める
+docker compose up -d    # 開発用 PostgreSQL 17（ポート 5433）
 mix ecto.create
-mix phx.server
+mix phx.server          # http://localhost:4001
 ```
+
+| 用途 | ポート |
+| --- | --- |
+| Phoenix（dev） | **4001** |
+| Phoenix（test） | 4002 |
+| PostgreSQL（dev） | **5433** |
+
+既定値（4000 / 5432）から変更している。理由は [`CLAUDE.md`](CLAUDE.md) を参照。
+
+本番は Supabase（東京リージョン）＋ Fly.io。`.env.example` をコピーして値を埋める。
 
 ## 状態
 
