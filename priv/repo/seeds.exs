@@ -9,7 +9,9 @@
 # ## 環境変数
 #
 #   ADMIN_EMAIL     admin のメールアドレス（既定: admin@antpress.local）
-#   ADMIN_NAME      表示名（既定: antpress 運営）
+#   ADMIN_NAME      屋号・氏名（既定: 運営者）
+#                   管理画面のナビに表示される。role: admin には別途
+#                   「運営」バッジが付くので、ここには実名や屋号を入れる
 #   ADMIN_PASSWORD  指定するとパスワードを設定し、確認済みにする。
 #                   省略時はマジックリンクでログインする（開発では /dev/mailbox で確認）
 
@@ -18,7 +20,7 @@ alias AntPress.Platform.Developer
 alias AntPress.Repo
 
 email = System.get_env("ADMIN_EMAIL") || "admin@antpress.local"
-name = System.get_env("ADMIN_NAME") || "antpress 運営"
+name = System.get_env("ADMIN_NAME") || "運営者"
 password = System.get_env("ADMIN_PASSWORD")
 
 admin =

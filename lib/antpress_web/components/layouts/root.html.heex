@@ -40,11 +40,17 @@
   <body>
     <%= if @current_developer || @current_user do %>
       <nav class="navbar border-b border-base-300 px-4 sm:px-6 lg:px-8">
-        <div class="flex-1">
+        <div class="flex-1 flex items-center gap-2">
           <%= if @current_developer do %>
             <.link navigate={~p"/clients"} class="text-lg font-semibold">antpress</.link>
           <% else %>
             <span class="text-lg font-semibold">antpress</span>
+          <% end %>
+
+          <%!-- いまどのモードで見ているかを示す表示なので、操作項目ではなく
+                アプリ名の隣に置く。admin は全 developer のクライアントが見える --%>
+          <%= if @current_developer && @current_developer.developer.role == :admin do %>
+            <span class="badge badge-sm badge-primary">運営</span>
           <% end %>
         </div>
 
@@ -52,22 +58,15 @@
           <ul class="menu menu-horizontal items-center gap-1">
             <%= if @current_developer do %>
               <li><.link navigate={~p"/clients"}>クライアント</.link></li>
-              <li class="text-sm opacity-60 px-2">
-                {@current_developer.developer.name}
-                <%= if @current_developer.developer.role == :admin do %>
-                  <span class="badge badge-sm badge-primary ml-1">運営</span>
-                <% end %>
-              </li>
+              <li class="text-sm opacity-60 px-2">{@current_developer.developer.name}</li>
               <li><.link href={~p"/developers/settings"}>設定</.link></li>
               <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
-              <li><AntPressWeb.Layouts.theme_toggle /></li>
             <% else %>
               <li class="text-sm opacity-60 px-2">
                 {@current_user.user.name}（{@current_user.client.name}）
               </li>
               <li><.link href={~p"/client/settings"}>設定</.link></li>
               <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
-              <li><AntPressWeb.Layouts.theme_toggle /></li>
             <% end %>
           </ul>
         </div>

@@ -11,9 +11,17 @@ defmodule AntPressWeb.DeveloperLive.Settings do
     <Layouts.app flash={@flash} current_developer={@current_developer}>
       <div class="text-center">
         <.header>
-          Account Settings
-          <:subtitle>Manage your account email address and password settings</:subtitle>
+          アカウント設定
+          <:subtitle>メールアドレスとパスワードを変更できます</:subtitle>
         </.header>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 rounded-lg border border-base-300 p-4">
+        <div>
+          <p class="font-semibold">表示テーマ</p>
+          <p class="text-sm opacity-60">システム設定に従う / ライト / ダーク</p>
+        </div>
+        <AntPressWeb.Layouts.theme_toggle />
       </div>
 
       <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
