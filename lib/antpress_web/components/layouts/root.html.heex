@@ -60,12 +60,14 @@
               </li>
               <li><.link href={~p"/developers/settings"}>設定</.link></li>
               <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
+              <li><AntPressWeb.Layouts.theme_toggle /></li>
             <% else %>
               <li class="text-sm opacity-60 px-2">
                 {@current_user.user.name}（{@current_user.client.name}）
               </li>
               <li><.link href={~p"/client/settings"}>設定</.link></li>
               <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
+              <li><AntPressWeb.Layouts.theme_toggle /></li>
             <% end %>
           </ul>
         </div>
