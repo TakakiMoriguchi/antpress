@@ -76,6 +76,10 @@ def list_articles, do: Repo.all(Article)
 埋めた画像が壊れる。** バケットは `antpress`、**Public** で作る。
 パスに推測不能な UUID が入るだけで秘匿性はない前提で扱う。
 
+⚠️ **削除しても公開 URL は約 1 時間画像を返し続ける**（Cloudflare の
+キャッシュ。実体とレコードは即座に消える）。即時に非公開にする手段はない
+前提で扱う。詳細と実測値は `docs/DECISIONS.md` 4.2。
+
 ### ストレージは差し替え可能。テストはネットワークに依存させない
 
 `AntPress.Storage`（behaviour）＋ `Local`（dev / test）/ `Supabase`（本番）。
