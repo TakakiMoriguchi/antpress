@@ -18,12 +18,13 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
         })
 
       assert get_session(conn, :developer_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ developer.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ developer.name
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end
@@ -41,7 +42,7 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
         })
 
       assert conn.resp_cookies["_ant_press_web_developer_remember_me"]
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
     end
 
     test "logs the developer in with return to", %{conn: conn, developer: developer} do
@@ -82,12 +83,13 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
         })
 
       assert get_session(conn, :developer_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ developer.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ developer.name
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end
@@ -103,7 +105,7 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
         })
 
       assert get_session(conn, :developer_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Developer confirmed successfully."
 
       assert Platform.get_developer!(developer.id).confirmed_at
@@ -111,7 +113,8 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ developer.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ developer.name
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end

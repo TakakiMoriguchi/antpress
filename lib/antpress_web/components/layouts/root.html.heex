@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="AntPress" suffix=" · Phoenix Framework" phx-no-format>{assigns[:page_title]}</.live_title>
+    <.live_title default="antpress" suffix=" · antpress" phx-no-format>{assigns[:page_title]}</.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
@@ -38,40 +38,40 @@
     </script>
   </head>
   <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_user do %>
-        <li>
-          {@current_user.user.email}
-        </li>
-        <li>
-          <.link href={~p"/client/settings"}>Settings</.link>
-        </li>
-        <li>
-          <.link href={~p"/client/log-out"} method="delete">Log out</.link>
-        </li>
-      <% else %>
-        <li>
-          <.link href={~p"/client/log-in"}>Log in</.link>
-        </li>
-      <% end %>
-    </ul>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_developer do %>
-        <li>
-          {@current_developer.developer.email}
-        </li>
-        <li>
-          <.link href={~p"/developers/settings"}>Settings</.link>
-        </li>
-        <li>
-          <.link href={~p"/developers/log-out"} method="delete">Log out</.link>
-        </li>
-      <% else %>
-        <li>
-          <.link href={~p"/developers/log-in"}>Log in</.link>
-        </li>
-      <% end %>
-    </ul>
+    <%= if @current_developer || @current_user do %>
+      <nav class="navbar border-b border-base-300 px-4 sm:px-6 lg:px-8">
+        <div class="flex-1">
+          <%= if @current_developer do %>
+            <.link navigate={~p"/clients"} class="text-lg font-semibold">antpress</.link>
+          <% else %>
+            <span class="text-lg font-semibold">antpress</span>
+          <% end %>
+        </div>
+
+        <div class="flex-none">
+          <ul class="menu menu-horizontal items-center gap-1">
+            <%= if @current_developer do %>
+              <li><.link navigate={~p"/clients"}>クライアント</.link></li>
+              <li class="text-sm opacity-60 px-2">
+                {@current_developer.developer.name}
+                <%= if @current_developer.developer.role == :admin do %>
+                  <span class="badge badge-sm badge-primary ml-1">運営</span>
+                <% end %>
+              </li>
+              <li><.link href={~p"/developers/settings"}>設定</.link></li>
+              <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
+            <% else %>
+              <li class="text-sm opacity-60 px-2">
+                {@current_user.user.name}（{@current_user.client.name}）
+              </li>
+              <li><.link href={~p"/client/settings"}>設定</.link></li>
+              <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
+            <% end %>
+          </ul>
+        </div>
+      </nav>
+    <% end %>
+
     {@inner_content}
   </body>
 </html>

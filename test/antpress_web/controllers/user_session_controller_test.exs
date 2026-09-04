@@ -18,12 +18,13 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/client/settings"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ user.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ user.name
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end
@@ -41,7 +42,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert conn.resp_cookies["_ant_press_web_user_remember_me"]
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/client/settings"
     end
 
     test "logs the user in with return to", %{conn: conn, user: user} do
@@ -82,12 +83,13 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/client/settings"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ user.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ user.name
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end
@@ -103,7 +105,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/client/settings"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "User confirmed successfully."
 
       assert Accounts.get_user!(user.id).confirmed_at
@@ -111,7 +113,8 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ user.email
+      # ナビはメールではなく名前を表示する（→ root.html.heex）
+      assert response =~ user.name
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end

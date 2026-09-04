@@ -263,7 +263,9 @@ defmodule AntPressWeb.UserAuth do
     ~p"/client/settings"
   end
 
-  def signed_in_path(_), do: ~p"/"
+  # クライアント側の主画面は記事一覧（→ docs/SCREENS.md C3）。
+  # 記事一覧は実装順序 5 で作るため、それまでは設定画面を暫定の行き先にする。
+  def signed_in_path(_), do: ~p"/client/settings"
 
   @doc """
   Plug for routes that require the user to be authenticated.

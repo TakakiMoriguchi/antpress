@@ -76,7 +76,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
       assert Platform.get_developer!(developer.id).confirmed_at
       # we are logged in now
       assert get_session(conn, :developer_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
 
       # log out, new conn
       conn = build_conn()

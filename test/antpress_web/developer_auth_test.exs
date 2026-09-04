@@ -28,7 +28,7 @@ defmodule AntPressWeb.DeveloperAuthTest do
       assert get_session(conn, :live_socket_id) ==
                "developers_sessions:#{Base.url_encode64(token)}"
 
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/clients"
       assert Platform.get_developer_by_session_token(token)
     end
 
@@ -101,7 +101,7 @@ defmodule AntPressWeb.DeveloperAuthTest do
       assert max_age == @remember_me_cookie_max_age
     end
 
-    test "redirects to settings when developer is already logged in", %{
+    test "redirects to client list when developer is already logged in", %{
       conn: conn,
       developer: developer
     } do
@@ -110,7 +110,7 @@ defmodule AntPressWeb.DeveloperAuthTest do
         |> assign(:current_developer, Scope.for_developer(developer))
         |> DeveloperAuth.log_in_developer(developer)
 
-      assert redirected_to(conn) == ~p"/developers/settings"
+      assert redirected_to(conn) == ~p"/clients"
     end
 
     test "writes a cookie if remember_me was set in previous session", %{

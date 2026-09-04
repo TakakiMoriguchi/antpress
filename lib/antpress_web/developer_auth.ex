@@ -260,13 +260,17 @@ defmodule AntPressWeb.DeveloperAuth do
 
   @doc "Returns the path to redirect to after log in."
   # the developer was already logged in, redirect to settings
+  # developer / admin の主画面はクライアント管理（→ docs/SCREENS.md D3）。
+  #
+  # ⚠️ ログイン処理の時点では current_developer がまだ未設定（認証前にプラグが
+  #    nil を入れている）なので、パターンマッチだけでは第 1 節に一致しない。
+  #    フォールバックも同じ行き先にしておく必要がある。
   def signed_in_path(%Plug.Conn{
         assigns: %{current_developer: %Scope{developer: %Platform.Developer{}}}
-      }) do
-    ~p"/developers/settings"
-  end
+      }),
+      do: ~p"/clients"
 
-  def signed_in_path(_), do: ~p"/"
+  def signed_in_path(_), do: ~p"/clients"
 
   @doc """
   Plug for routes that require the developer to be authenticated.
