@@ -138,6 +138,72 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
 コンテナ名も `antpress-dev-db` にしている。`antpress-db` は
 `/Users/tk2/Documents/antpress/api/` の別プロジェクトが使用中のため。
 
+## 新しいファイルをどこに置くか
+
+### 2 つの境界
+
+```
+境界 1  lib/antpress/  ⟷  lib/antpress_web/     Phoenix の中核原則
+境界 2  コンテキスト分割（Platform / Tenancy / Accounts / Blog）
+```
+
+**依存は一方通行。** `lib/antpress/` の中に `Plug` / `conn` / HTML が出てきたら設計違反。
+配信 API と管理画面が同じコンテキストを呼ぶので、この分離に実利がある。
+
+**コンテキストの公開 API を通す。** `AntPressWeb` が `AntPress.Platform.Developer` を
+直接 `Repo.get` するのは違反。`AntPress.Platform.get_developer!/1` を呼ぶ。
+この壁があるから 2 段テナントスコープを 1 箇所で強制できる。
+
+### 判断は 3 つの問いで決まる
+
+```
+1. Web を知る必要があるか？
+      YES → lib/antpress_web/     NO → lib/antpress/
+
+2. （lib/antpress/ なら）どのドメインか？
+      developer → platform/    client → tenancy/
+      user      → accounts/    記事    → blog/
+
+3. （lib/antpress_web/ なら）状態を持つ画面か？
+      YES → live/              NO → controllers/
+```
+
+`controllers/` を使うのは **Cookie を書く必要があるもの**（LiveView は WebSocket 上で
+動くため Cookie を書けない）と **JSON API**。それ以外は `live/`。
+
+### 独自 namespace（`lib/antpress_batch` など）は切らない
+
+`_web` は Phoenix 1.2 以前に**別の OTP アプリケーションだった名残**で、
+「配信手段ごとに namespace を作る」パターンではない。独立の基準は
+**独自の依存を持つ大きな塊かどうか**。
+
+antpress で必要なインターフェース層は 3 つだけ。
+
+| 層 | トリガー | 置き場所 |
+| --- | --- | --- |
+| HTTP | ブラウザ・API クライアント | `lib/antpress_web/` |
+| スケジュール実行 | **時刻** | ドメイン内（例: `blog/webhook_notifier.ex`）。ロジックはドメインそのもので、GenServer は薄い引き金 |
+| CLI | 人間・CI | `lib/mix/tasks/` |
+
+⚠️ **外部サービスからの通知は多くが HTTP。** Resend の配信結果通知も
+GitHub の push 通知も受け口は `_web`。「Webhook」の名前に引きずられて
+別の層を作らない。
+
+### 画面固有の JS は LiveView の隣に置く
+
+Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイルを作らない。
+
+```heex
+<div id="editor" phx-hook=".ToastEditor" phx-update="ignore"></div>
+<script :type={Phoenix.LiveView.ColocatedHook} name=".ToastEditor">
+  export default { mounted() { /* ... */ } }
+</script>
+```
+
+- **フック名は `.` 始まり必須**
+- コンパイル時に自動で `app.js` バンドルへ統合される
+- `assets/` はビルドツールのエントリポイント専用（`app.css` / `app.js` / `vendor/`）
+
 ## 規約
 
 ### 命名
