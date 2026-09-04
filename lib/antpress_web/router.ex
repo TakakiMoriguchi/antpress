@@ -54,6 +54,13 @@ defmodule AntPressWeb.Router do
       on_mount: [{AntPressWeb.DeveloperAuth, :require_authenticated}] do
       live "/developers/settings", DeveloperLive.Settings, :edit
       live "/developers/settings/confirm-email/:token", DeveloperLive.Settings, :confirm_email
+
+      # クライアント管理（→ docs/SCREENS.md D3〜D5）
+      # admin と developer が共用する。スコープは Platform 側で強制する
+      live "/clients", ClientLive.Index, :index
+      live "/clients/new", ClientLive.Form, :new
+      live "/clients/:id", ClientLive.Show, :show
+      live "/clients/:id/edit", ClientLive.Form, :edit
     end
 
     post "/developers/update-password", DeveloperSessionController, :update_password

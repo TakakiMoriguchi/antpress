@@ -309,4 +309,161 @@ defmodule AntPress.Platform do
       end
     end)
   end
+
+  alias AntPress.Platform.Client
+  alias AntPress.Platform.Scope
+
+  @doc """
+  Subscribes to scoped notifications about any client changes.
+
+  The broadcasted messages match the pattern:
+
+    * {:created, %Client{}}
+    * {:updated, %Client{}}
+    * {:deleted, %Client{}}
+
+  """
+  def subscribe_clients(%Scope{} = scope) do
+    key = scope.developer.id
+
+    Phoenix.PubSub.subscribe(AntPress.PubSub, "developer:#{key}:clients")
+  end
+
+  defp broadcast_client(%Scope{} = scope, message) do
+    key = scope.developer.id
+
+    Phoenix.PubSub.broadcast(AntPress.PubSub, "developer:#{key}:clients", message)
+  end
+
+  @doc """
+  Returns the list of clients.
+
+  ## Examples
+
+      iex> list_clients(scope)
+      [%Client{}, ...]
+
+  """
+  def list_clients(%Scope{developer: %Developer{role: :admin}}) do
+    Repo.all(Client)
+  end
+
+  def list_clients(%Scope{} = scope) do
+    Repo.all_by(Client, developer_id: scope.developer.id)
+  end
+
+  @doc """
+  Gets a single client.
+
+  Raises `Ecto.NoResultsError` if the Client does not exist.
+
+  ## Examples
+
+      iex> get_client!(scope, 123)
+      %Client{}
+
+      iex> get_client!(scope, 456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_client!(%Scope{developer: %Developer{role: :admin}}, id) do
+    Repo.get!(Client, id)
+  end
+
+  def get_client!(%Scope{} = scope, id) do
+    Repo.get_by!(Client, id: id, developer_id: scope.developer.id)
+  end
+
+  @doc """
+  Creates a client.
+
+  ## Examples
+
+      iex> create_client(scope, %{field: value})
+      {:ok, %Client{}}
+
+      iex> create_client(scope, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_client(%Scope{} = scope, attrs) do
+    with {:ok, client = %Client{}} <-
+           %Client{}
+           |> Client.changeset(attrs, scope)
+           |> Repo.insert() do
+      broadcast_client(scope, {:created, client})
+      {:ok, client}
+    end
+  end
+
+  @doc """
+  Updates a client.
+
+  ## Examples
+
+      iex> update_client(scope, client, %{field: new_value})
+      {:ok, %Client{}}
+
+      iex> update_client(scope, client, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_client(%Scope{} = scope, %Client{} = client, attrs) do
+    :ok = authorize_client!(scope, client)
+
+    with {:ok, client = %Client{}} <-
+           client
+           |> Client.changeset(attrs, scope)
+           |> Repo.update() do
+      broadcast_client(scope, {:updated, client})
+      {:ok, client}
+    end
+  end
+
+  @doc """
+  Deletes a client.
+
+  ## Examples
+
+      iex> delete_client(scope, client)
+      {:ok, %Client{}}
+
+      iex> delete_client(scope, client)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_client(%Scope{} = scope, %Client{} = client) do
+    :ok = authorize_client!(scope, client)
+
+    with {:ok, client = %Client{}} <-
+           Repo.delete(client) do
+      broadcast_client(scope, {:deleted, client})
+      {:ok, client}
+    end
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking client changes.
+
+  ## Examples
+
+      iex> change_client(scope, client)
+      %Ecto.Changeset{data: %Client{}}
+
+  """
+  def change_client(%Scope{} = scope, %Client{} = client, attrs \\ %{}) do
+    :ok = authorize_client!(scope, client)
+
+    Client.changeset(client, attrs, scope)
+  end
+
+  # ⚠️ テナント分離の最終防衛線。
+  # admin だけがスコープを越えられる（→ docs/DATA-MODEL.md 1.1）。
+  # 一致しなければ MatchError で即座に落ちる（無言で通さない）。
+  defp authorize_client!(%Scope{developer: %Developer{role: :admin}}, %Client{}), do: :ok
+
+  defp authorize_client!(%Scope{developer: %Developer{id: dev_id}}, %Client{
+         developer_id: dev_id
+       }),
+       do: :ok
 end

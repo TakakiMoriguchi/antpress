@@ -433,4 +433,246 @@ defmodule AntPress.PlatformTest do
       refute inspect(%Developer{password: "123456"}) =~ "password: \"123456\""
     end
   end
+
+  describe "clients" do
+    alias AntPress.Platform.Client
+
+    import AntPress.PlatformFixtures, only: [developer_scope_fixture: 0]
+    import AntPress.PlatformFixtures
+
+    @invalid_attrs %{
+      name: nil,
+      status: nil,
+      plan: nil,
+      slug: nil,
+      contact_notification_email: nil,
+      webhook_url: nil
+    }
+
+    test "list_clients/1 returns all scoped clients" do
+      scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      other_client = client_fixture(other_scope)
+      assert Platform.list_clients(scope) == [client]
+      assert Platform.list_clients(other_scope) == [other_client]
+    end
+
+    test "get_client!/2 returns the client with given id" do
+      scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      other_scope = developer_scope_fixture()
+      assert Platform.get_client!(scope, client.id) == client
+      assert_raise Ecto.NoResultsError, fn -> Platform.get_client!(other_scope, client.id) end
+    end
+
+    test "create_client/2 with valid data creates a client" do
+      valid_attrs = %{
+        name: "ラーメン太郎",
+        status: :active,
+        plan: :basic,
+        slug: "ramen-taro",
+        contact_notification_email: "owner@example.com",
+        webhook_url: "https://api.vercel.com/v1/deploy/abc"
+      }
+
+      scope = developer_scope_fixture()
+
+      assert {:ok, %Client{} = client} = Platform.create_client(scope, valid_attrs)
+      assert client.name == "ラーメン太郎"
+      assert client.status == :active
+      assert client.plan == :basic
+      assert client.slug == "ramen-taro"
+      assert client.contact_notification_email == "owner@example.com"
+      assert client.webhook_url == "https://api.vercel.com/v1/deploy/abc"
+      assert client.developer_id == scope.developer.id
+    end
+
+    test "create_client/2 with invalid data returns error changeset" do
+      scope = developer_scope_fixture()
+      assert {:error, %Ecto.Changeset{}} = Platform.create_client(scope, @invalid_attrs)
+    end
+
+    test "update_client/3 with valid data updates the client" do
+      scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      # plan は :basic のまま。AI プランは developer の Anthropic キー登録が前提
+      # （→ docs/DECISIONS.md 3.1）。専用のテストで検証する
+      update_attrs = %{
+        name: "ラーメン太郎 本店",
+        status: :suspended,
+        plan: :basic,
+        slug: "ramen-taro-honten",
+        contact_notification_email: "owner2@example.com",
+        webhook_url: "https://api.vercel.com/v1/deploy/xyz"
+      }
+
+      assert {:ok, %Client{} = client} = Platform.update_client(scope, client, update_attrs)
+      assert client.name == "ラーメン太郎 本店"
+      assert client.status == :suspended
+      assert client.plan == :basic
+      assert client.slug == "ramen-taro-honten"
+      assert client.contact_notification_email == "owner2@example.com"
+      assert client.webhook_url == "https://api.vercel.com/v1/deploy/xyz"
+    end
+
+    test "update_client/3 with invalid scope raises" do
+      scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      client = client_fixture(scope)
+
+      assert_raise FunctionClauseError, fn ->
+        Platform.update_client(other_scope, client, %{})
+      end
+    end
+
+    test "update_client/3 with invalid data returns error changeset" do
+      scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      assert {:error, %Ecto.Changeset{}} = Platform.update_client(scope, client, @invalid_attrs)
+      assert client == Platform.get_client!(scope, client.id)
+    end
+
+    test "delete_client/2 deletes the client" do
+      scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      assert {:ok, %Client{}} = Platform.delete_client(scope, client)
+      assert_raise Ecto.NoResultsError, fn -> Platform.get_client!(scope, client.id) end
+    end
+
+    test "delete_client/2 with invalid scope raises" do
+      scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      assert_raise FunctionClauseError, fn -> Platform.delete_client(other_scope, client) end
+    end
+
+    # ─── ここから antpress 固有の設計要件のテスト ───────────────
+
+    test "admin はスコープを越えて全クライアントを取得できる（→ docs/DATA-MODEL.md 1.1）" do
+      dev_scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      admin_scope = admin_scope_fixture()
+
+      client_a = client_fixture(dev_scope)
+      client_b = client_fixture(other_scope)
+
+      # developer は自分のものだけ
+      assert Platform.list_clients(dev_scope) == [client_a]
+      assert Platform.list_clients(other_scope) == [client_b]
+
+      # admin は全件
+      admin_ids = Platform.list_clients(admin_scope) |> Enum.map(& &1.id) |> Enum.sort()
+      assert admin_ids == Enum.sort([client_a.id, client_b.id])
+
+      # admin は他人のクライアントを個別取得できる
+      assert Platform.get_client!(admin_scope, client_a.id).id == client_a.id
+      assert Platform.get_client!(admin_scope, client_b.id).id == client_b.id
+    end
+
+    test "developer は他の developer のクライアントを取得できない" do
+      dev_scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      client = client_fixture(other_scope)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Platform.get_client!(dev_scope, client.id)
+      end
+    end
+
+    test "admin は他人のクライアントを更新・削除できる" do
+      dev_scope = developer_scope_fixture()
+      admin_scope = admin_scope_fixture()
+      client = client_fixture(dev_scope)
+
+      assert {:ok, updated} = Platform.update_client(admin_scope, client, %{name: "admin が改名"})
+      assert updated.name == "admin が改名"
+
+      # developer_id は元の developer のまま（admin に付け替わらない）
+      assert updated.developer_id == dev_scope.developer.id
+
+      assert {:ok, _} = Platform.delete_client(admin_scope, updated)
+    end
+
+    test "developer_id は attrs から設定できない（他人配下に作れない）" do
+      dev_scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+
+      attrs = %{
+        name: "乗っ取り試行",
+        slug: "hijack-attempt",
+        plan: :basic,
+        developer_id: other_scope.developer.id
+      }
+
+      assert {:ok, client} = Platform.create_client(dev_scope, attrs)
+
+      # スコープ側の developer_id が採用され、attrs は無視される
+      assert client.developer_id == dev_scope.developer.id
+      refute client.developer_id == other_scope.developer.id
+    end
+
+    test "Anthropic キー未登録の developer は AI プランを設定できない（→ docs/DECISIONS.md 3.1）" do
+      scope = developer_scope_fixture()
+      refute scope.developer.anthropic_api_key
+
+      assert {:error, changeset} =
+               Platform.create_client(scope, %{name: "AI 希望", slug: "ai-hope", plan: :ai})
+
+      assert "AI プランを使うには、先に Anthropic API キーを登録してください" in errors_on(changeset).plan
+    end
+
+    test "Anthropic キー登録済みの developer は AI プランを設定できる" do
+      scope = developer_scope_fixture(anthropic_api_key: "sk-ant-test-key")
+      assert scope.developer.anthropic_api_key
+
+      assert {:ok, client} =
+               Platform.create_client(scope, %{name: "AI 利用", slug: "ai-ok", plan: :ai})
+
+      assert client.plan == :ai
+    end
+
+    test "スラッグは英小文字・数字・ハイフンのみ" do
+      scope = developer_scope_fixture()
+
+      for bad <- ["Upper", "with space", "-leading", "trailing-", "under_score", "日本語"] do
+        assert {:error, changeset} =
+                 Platform.create_client(scope, %{name: "n", slug: bad, plan: :basic})
+
+        assert Map.has_key?(errors_on(changeset), :slug), "#{bad} が通ってしまった"
+      end
+    end
+
+    test "webhook_url は https のみ" do
+      scope = developer_scope_fixture()
+
+      assert {:error, changeset} =
+               Platform.create_client(scope, %{
+                 name: "n",
+                 slug: "http-webhook",
+                 plan: :basic,
+                 webhook_url: "http://example.com/hook"
+               })
+
+      assert "https:// で始まる URL を指定してください" in errors_on(changeset).webhook_url
+    end
+
+    test "スラッグはグローバル一意（別 developer 間でも重複不可）" do
+      scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+
+      assert {:ok, _} = Platform.create_client(scope, %{name: "a", slug: "dup", plan: :basic})
+
+      assert {:error, changeset} =
+               Platform.create_client(other_scope, %{name: "b", slug: "dup", plan: :basic})
+
+      assert "has already been taken" in errors_on(changeset).slug
+    end
+
+    test "change_client/2 returns a client changeset" do
+      scope = developer_scope_fixture()
+      client = client_fixture(scope)
+      assert %Ecto.Changeset{} = Platform.change_client(scope, client)
+    end
+  end
 end

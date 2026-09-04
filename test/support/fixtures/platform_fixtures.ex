@@ -47,8 +47,41 @@ defmodule AntPress.PlatformFixtures do
     developer_scope_fixture(developer)
   end
 
-  def developer_scope_fixture(developer) do
+  def developer_scope_fixture(%AntPress.Platform.Developer{} = developer) do
     Scope.for_developer(developer)
+  end
+
+  @doc """
+  属性を指定して developer のスコープを作る。
+
+      developer_scope_fixture(anthropic_api_key: "sk-ant-...")
+  """
+  def developer_scope_fixture(attrs) when is_list(attrs) or is_map(attrs) do
+    developer = developer_fixture()
+
+    developer =
+      developer
+      |> AntPress.Platform.Developer.profile_changeset(Map.new(attrs) |> stringify_keys())
+      |> AntPress.Repo.update!()
+
+    Scope.for_developer(developer)
+  end
+
+  @doc """
+  admin（`role: :admin`）のスコープを作る。
+  admin だけがテナントスコープを越えられる（→ docs/DATA-MODEL.md 1.1）。
+  """
+  def admin_scope_fixture(attrs \\ %{}) do
+    {:ok, admin} =
+      Platform.create_developer(
+        valid_developer_attributes(Map.merge(%{role: :admin}, Map.new(attrs)))
+      )
+
+    Scope.for_developer(admin)
+  end
+
+  defp stringify_keys(map) do
+    Map.new(map, fn {k, v} -> {to_string(k), v} end)
   end
 
   def set_password(developer) do
@@ -88,5 +121,28 @@ defmodule AntPress.PlatformFixtures do
       from(ut in Platform.DeveloperToken, where: ut.token == ^token),
       set: [inserted_at: dt, authenticated_at: dt]
     )
+  end
+
+  @doc """
+  Generate a unique client slug.
+  """
+  def unique_client_slug, do: "client-#{System.unique_integer([:positive])}"
+
+  @doc """
+  Generate a client.
+  """
+  def client_fixture(scope, attrs \\ %{}) do
+    attrs =
+      Enum.into(attrs, %{
+        contact_notification_email: "owner@example.com",
+        name: "ラーメン太郎",
+        plan: :basic,
+        slug: unique_client_slug(),
+        status: :active,
+        webhook_url: "https://api.vercel.com/v1/integrations/deploy/abc123"
+      })
+
+    {:ok, client} = AntPress.Platform.create_client(scope, attrs)
+    client
   end
 end
