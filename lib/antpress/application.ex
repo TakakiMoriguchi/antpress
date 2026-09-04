@@ -8,7 +8,6 @@ defmodule AntPress.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      AntPressWeb.Telemetry,
       # Vault は Repo より先に起動する（暗号化フィールドの読み書きで使われるため）
       AntPress.Vault,
       AntPress.Repo,
