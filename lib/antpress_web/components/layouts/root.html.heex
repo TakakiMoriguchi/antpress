@@ -40,13 +40,11 @@
   <body>
     <%= if @current_developer || @current_user do %>
       <nav class="navbar border-b border-base-300 px-4 sm:px-6 lg:px-8">
-        <div class="flex-1 flex items-center gap-3">
+        <div class="flex-1">
           <%= if @current_developer do %>
             <.link navigate={~p"/clients"} class="text-lg font-semibold">antpress</.link>
-            <span class="text-sm opacity-60">{@current_developer.developer.name}</span>
           <% else %>
             <span class="text-lg font-semibold">antpress</span>
-            <span class="text-sm opacity-60">{@current_user.client.name}</span>
           <% end %>
         </div>
 
@@ -54,10 +52,10 @@
           <ul class="menu menu-horizontal items-center gap-1">
             <%= if @current_developer do %>
               <li><.link navigate={~p"/clients"}>クライアント</.link></li>
-              <li><.link href={~p"/developers/settings"}>設定</.link></li>
+              <li><.link href={~p"/developers/settings"}>アカウント</.link></li>
               <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
             <% else %>
-              <li><.link href={~p"/client/settings"}>設定</.link></li>
+              <li><.link href={~p"/client/settings"}>アカウント</.link></li>
               <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
             <% end %>
           </ul>

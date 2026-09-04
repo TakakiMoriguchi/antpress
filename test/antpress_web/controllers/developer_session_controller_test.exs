@@ -23,8 +23,10 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # ナビはメールではなく名前を表示する（→ root.html.heex）
-      assert response =~ developer.name
+      # ヘッダーは屋号を表示しない（→ root.html.heex）。
+      # ログイン成功はリダイレクト先とナビの存在で確認する
+      assert response =~ "クライアント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end
@@ -88,8 +90,10 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # ナビはメールではなく名前を表示する（→ root.html.heex）
-      assert response =~ developer.name
+      # ヘッダーは屋号を表示しない（→ root.html.heex）。
+      # ログイン成功はリダイレクト先とナビの存在で確認する
+      assert response =~ "クライアント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end
@@ -113,8 +117,10 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # ナビはメールではなく名前を表示する（→ root.html.heex）
-      assert response =~ developer.name
+      # ヘッダーは屋号を表示しない（→ root.html.heex）。
+      # ログイン成功はリダイレクト先とナビの存在で確認する
+      assert response =~ "クライアント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"
       assert response =~ ~p"/developers/log-out"
     end

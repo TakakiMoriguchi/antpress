@@ -99,6 +99,24 @@ defmodule AntPress.Platform do
   def sudo_mode?(_developer, _minutes), do: false
 
   @doc """
+  屋号・氏名を変更するための changeset。
+  """
+  def change_developer_profile(%Developer{} = developer, attrs \\ %{}) do
+    Developer.profile_changeset(developer, attrs)
+  end
+
+  @doc """
+  屋号・氏名を更新する。
+
+  `role` と `status` は含めない（誤って権限や契約状態を変えないため）。
+  """
+  def update_developer_profile(%Developer{} = developer, attrs) do
+    developer
+    |> Developer.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for changing the developer email.
 
   See `AntPress.Platform.Developer.email_changeset/3` for a list of supported options.

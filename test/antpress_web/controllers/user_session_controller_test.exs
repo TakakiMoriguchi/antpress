@@ -23,9 +23,11 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # クライアント側のナビは「どのクライアントを編集中か」を表示する
-      # （→ root.html.heex）
-      assert response =~ user.client.name
+
+      # ヘッダーはクライアント名を表示しない（→ root.html.heex）。
+      # ログイン成功はナビの存在で確認する
+      assert response =~ "アカウント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end
@@ -89,9 +91,11 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # クライアント側のナビは「どのクライアントを編集中か」を表示する
-      # （→ root.html.heex）
-      assert response =~ user.client.name
+
+      # ヘッダーはクライアント名を表示しない（→ root.html.heex）。
+      # ログイン成功はナビの存在で確認する
+      assert response =~ "アカウント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end
@@ -115,9 +119,11 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      # クライアント側のナビは「どのクライアントを編集中か」を表示する
-      # （→ root.html.heex）
-      assert response =~ user.client.name
+
+      # ヘッダーはクライアント名を表示しない（→ root.html.heex）。
+      # ログイン成功はナビの存在で確認する
+      assert response =~ "アカウント"
+      assert response =~ "ログアウト"
       assert response =~ ~p"/client/settings"
       assert response =~ ~p"/client/log-out"
     end

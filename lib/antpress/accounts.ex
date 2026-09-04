@@ -110,6 +110,24 @@ defmodule AntPress.Accounts do
   def sudo_mode?(_user, _minutes), do: false
 
   @doc """
+  表示名を変更するための changeset。
+  """
+  def change_user_profile(%User{} = user, attrs \\ %{}) do
+    User.profile_changeset(user, attrs)
+  end
+
+  @doc """
+  表示名を更新する。
+
+  `role` と `client_id` は含めない（誤って権限や所属を変えないため）。
+  """
+  def update_user_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for changing the user email.
 
   See `AntPress.Accounts.User.email_changeset/3` for a list of supported options.
