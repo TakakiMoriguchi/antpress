@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+# phx.gen.auth を 2 系統（developer / user）実行しているため scope も 2 つある。
+# default: true の developer が phx.gen.live の既定スコープになる。
 config :antpress, :scopes,
   developer: [
     default: true,
@@ -18,6 +20,17 @@ config :antpress, :scopes,
     schema_table: :developers,
     test_data_fixture: AntPress.PlatformFixtures,
     test_setup_helper: :register_and_log_in_developer
+  ],
+  user: [
+    default: false,
+    module: AntPress.Accounts.Scope,
+    assign_key: :current_user,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :binary_id,
+    schema_table: :users,
+    test_data_fixture: AntPress.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
   ]
 
 config :antpress,

@@ -1,6 +1,8 @@
 defmodule AntPressWeb.Router do
   use AntPressWeb, :router
 
+  import AntPressWeb.UserAuth
+
   import AntPressWeb.DeveloperAuth
 
   pipeline :browser do
@@ -10,6 +12,7 @@ defmodule AntPressWeb.Router do
     plug :put_root_layout, html: {AntPressWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user_for_user
     plug :fetch_current_developer_for_developer
   end
 
@@ -70,5 +73,34 @@ defmodule AntPressWeb.Router do
 
     post "/developers/log-in", DeveloperSessionController, :create
     delete "/developers/log-out", DeveloperSessionController, :delete
+  end
+
+  ## Authentication routes
+
+  scope "/", AntPressWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :require_authenticated_user,
+      on_mount: [{AntPressWeb.UserAuth, :require_authenticated}] do
+      live "/client/settings", UserLive.Settings, :edit
+      live "/client/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+    end
+
+    post "/client/update-password", UserSessionController, :update_password
+  end
+
+  scope "/", AntPressWeb do
+    pipe_through [:browser]
+
+    live_session :current_user,
+      on_mount: [{AntPressWeb.UserAuth, :mount_current_user}] do
+      # セルフサインアップは提供しない。オーナーは developer が発行し、
+      # スタッフはオーナーが発行する（→ docs/DECISIONS.md 1.3 / 3.5）
+      live "/client/log-in", UserLive.Login, :new
+      live "/client/log-in/:token", UserLive.Confirmation, :new
+    end
+
+    post "/client/log-in", UserSessionController, :create
+    delete "/client/log-out", UserSessionController, :delete
   end
 end

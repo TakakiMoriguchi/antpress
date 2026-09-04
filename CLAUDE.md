@@ -101,6 +101,26 @@ mix phx.server         # http://localhost:4001
 | Phoenix（dev） | **4001** | 4000 は別アプリ（JapanTicket PRESTIGE Manager）が使用中 |
 | Phoenix（test） | 4002 | — |
 
+### ⚠️ テスト DB に対して `Sandbox.mode(:auto)` でスクリプトを走らせない
+
+`MIX_ENV=test mix run -e '...'` で `Ecto.Adapters.SQL.Sandbox.mode(Repo, :auto)`
+を使うと、**書き込みがサンドボックスのトランザクション外で commit され、
+ロールバックされずに残る。**
+
+生成テストには `Repo.update_all(UserToken, set: [...])` のように
+**WHERE 句なしで全行を対象にして `{1, nil}` を期待する**ものがあるため、
+残骸が 1 行あるだけでテストが落ちる。原因が分かりにくい。
+
+調査で一時的にデータを作る必要がある場合:
+
+```sh
+# 開発 DB を使う（テスト DB を触らない）
+mix run -e '...'
+
+# それでもテスト DB を汚したら作り直す
+MIX_ENV=test mix ecto.drop && MIX_ENV=test mix ecto.create && MIX_ENV=test mix ecto.migrate
+```
+
 ### ⚠️ 設定ファイルを触ったらサーバーを再起動する
 
 `config/*.exs` を編集すると、コードリローダーは**リロードでは対応できず**

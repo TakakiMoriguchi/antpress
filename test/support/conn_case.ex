@@ -64,16 +64,64 @@ defmodule AntPressWeb.ConnCase do
   def log_in_developer(conn, developer, opts \\ []) do
     token = AntPress.Platform.generate_developer_session_token(developer)
 
-    maybe_set_token_authenticated_at(token, opts[:token_authenticated_at])
+    maybe_set_token_authenticated_at(
+      AntPress.PlatformFixtures,
+      token,
+      opts[:token_authenticated_at]
+    )
 
     conn
     |> Phoenix.ConnTest.init_test_session(%{})
     |> Plug.Conn.put_session(:developer_token, token)
   end
 
-  defp maybe_set_token_authenticated_at(_token, nil), do: nil
+  # ⚠️ phx.gen.auth を 2 系統（developer / user）実行したため、この関数が
+  #    2 組生成されていた。同名・同アリティは先に定義された節から照合されるので
+  #    後半（AccountsFixtures 側）が到達不能になり、user のトークンに
+  #    authenticated_at が設定されなかった。
+  #    fixtures モジュールを引数で受け取る形に統一して解消している。
+  defp maybe_set_token_authenticated_at(_fixtures, _token, nil), do: nil
 
-  defp maybe_set_token_authenticated_at(token, authenticated_at) do
-    AntPress.PlatformFixtures.override_token_authenticated_at(token, authenticated_at)
+  defp maybe_set_token_authenticated_at(fixtures, token, authenticated_at) do
+    fixtures.override_token_authenticated_at(token, authenticated_at)
+  end
+
+  @doc """
+  Setup helper that registers and logs in users.
+
+      setup :register_and_log_in_user
+
+  It stores an updated connection and a registered user in the
+  test context.
+  """
+  def register_and_log_in_user(%{conn: conn} = context) do
+    user = AntPress.AccountsFixtures.user_fixture()
+    scope = AntPress.Accounts.Scope.for_user(user)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+  end
+
+  @doc """
+  Logs the given `user` into the `conn`.
+
+  It returns an updated `conn`.
+  """
+  def log_in_user(conn, user, opts \\ []) do
+    token = AntPress.Accounts.generate_user_session_token(user)
+
+    maybe_set_token_authenticated_at(
+      AntPress.AccountsFixtures,
+      token,
+      opts[:token_authenticated_at]
+    )
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:user_token, token)
   end
 end

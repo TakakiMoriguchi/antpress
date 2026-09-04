@@ -38,6 +38,10 @@ defmodule AntPressWeb.Layouts do
     default: nil,
     doc: "ログイン中の developer（role: admin を含む）"
 
+  attr :current_user, :map,
+    default: nil,
+    doc: "ログイン中のクライアント側ユーザー（owner / staff）"
+
   slot :inner_block, required: true
 
   def app(assigns) do

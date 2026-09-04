@@ -39,6 +39,23 @@
   </head>
   <body>
     <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+      <%= if @current_user do %>
+        <li>
+          {@current_user.user.email}
+        </li>
+        <li>
+          <.link href={~p"/client/settings"}>Settings</.link>
+        </li>
+        <li>
+          <.link href={~p"/client/log-out"} method="delete">Log out</.link>
+        </li>
+      <% else %>
+        <li>
+          <.link href={~p"/client/log-in"}>Log in</.link>
+        </li>
+      <% end %>
+    </ul>
+    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
       <%= if @current_developer do %>
         <li>
           {@current_developer.developer.email}
