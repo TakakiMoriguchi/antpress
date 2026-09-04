@@ -31,7 +31,7 @@ defmodule AntPressWeb.UserLive.SettingsTest do
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert path == ~p"/client/log-in"
-      assert %{"error" => "You must log in to access this page."} = flash
+      assert %{"error" => "このページを表示するにはログインが必要です"} = flash
     end
 
     test "redirects if user is not in sudo mode", %{conn: conn} do
@@ -76,7 +76,7 @@ defmodule AntPressWeb.UserLive.SettingsTest do
       assert get_session(new_password_conn, :user_token) != get_session(conn, :user_token)
 
       assert Phoenix.Flash.get(new_password_conn.assigns.flash, :info) =~
-               "Password updated successfully"
+               "パスワードを変更しました"
 
       assert Accounts.get_user_by_email_and_password(user.email, new_password)
     end
@@ -94,7 +94,7 @@ defmodule AntPressWeb.UserLive.SettingsTest do
           }
         })
 
-      assert result =~ "Save Password"
+      assert result =~ "パスワードを変更"
       assert result =~ "should be at least 12 character(s)"
       assert result =~ "does not match password"
     end
@@ -112,7 +112,7 @@ defmodule AntPressWeb.UserLive.SettingsTest do
         })
         |> render_submit()
 
-      assert result =~ "Save Password"
+      assert result =~ "パスワードを変更"
       assert result =~ "should be at least 12 character(s)"
       assert result =~ "does not match password"
     end

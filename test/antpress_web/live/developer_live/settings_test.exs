@@ -31,7 +31,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert path == ~p"/developers/log-in"
-      assert %{"error" => "You must log in to access this page."} = flash
+      assert %{"error" => "このページを表示するにはログインが必要です"} = flash
     end
 
     test "redirects if developer is not in sudo mode", %{conn: conn} do
@@ -77,7 +77,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
                get_session(conn, :developer_token)
 
       assert Phoenix.Flash.get(new_password_conn.assigns.flash, :info) =~
-               "Password updated successfully"
+               "パスワードを変更しました"
 
       assert Platform.get_developer_by_email_and_password(developer.email, new_password)
     end
@@ -95,7 +95,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
           }
         })
 
-      assert result =~ "Save Password"
+      assert result =~ "パスワードを変更"
       assert result =~ "should be at least 12 character(s)"
       assert result =~ "does not match password"
     end
@@ -113,7 +113,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         })
         |> render_submit()
 
-      assert result =~ "Save Password"
+      assert result =~ "パスワードを変更"
       assert result =~ "should be at least 12 character(s)"
       assert result =~ "does not match password"
     end

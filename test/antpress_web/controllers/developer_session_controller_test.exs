@@ -61,7 +61,7 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
         })
 
       assert redirected_to(conn) == "/foo/bar"
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "ログインしました"
     end
 
     test "redirects to login page with invalid credentials", %{conn: conn, developer: developer} do
@@ -110,7 +110,7 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
 
       assert get_session(conn, :developer_token)
       assert redirected_to(conn) == ~p"/clients"
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Developer confirmed successfully."
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "アカウントを確認しました"
 
       assert Platform.get_developer!(developer.id).confirmed_at
 
@@ -143,14 +143,14 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       conn = conn |> log_in_developer(developer) |> delete(~p"/developers/log-out")
       assert redirected_to(conn) == ~p"/"
       refute get_session(conn, :developer_token)
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "ログアウトしました"
     end
 
     test "succeeds even if the developer is not logged in", %{conn: conn} do
       conn = delete(conn, ~p"/developers/log-out")
       assert redirected_to(conn) == ~p"/"
       refute get_session(conn, :developer_token)
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "ログアウトしました"
     end
   end
 end

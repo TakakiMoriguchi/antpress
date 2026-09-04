@@ -18,7 +18,7 @@ defmodule AntPressWeb.UserLive.ConfirmationTest do
         end)
 
       {:ok, _lv, html} = live(conn, ~p"/client/log-in/#{token}")
-      assert html =~ "Confirm and stay logged in"
+      assert html =~ "確認してログインしたままにする"
     end
 
     test "renders login page for confirmed user", %{conn: conn, confirmed_user: user} do
@@ -29,7 +29,7 @@ defmodule AntPressWeb.UserLive.ConfirmationTest do
 
       {:ok, _lv, html} = live(conn, ~p"/client/log-in/#{token}")
       refute html =~ "Confirm my account"
-      assert html =~ "Keep me logged in on this device"
+      assert html =~ "この端末でログインを保持する"
     end
 
     test "renders login page for already logged in user", %{conn: conn, confirmed_user: user} do
@@ -42,7 +42,7 @@ defmodule AntPressWeb.UserLive.ConfirmationTest do
 
       {:ok, _lv, html} = live(conn, ~p"/client/log-in/#{token}")
       refute html =~ "Confirm my account"
-      assert html =~ "Log in"
+      assert html =~ "ログイン"
     end
 
     test "confirms the given token once", %{conn: conn, unconfirmed_user: user} do
@@ -59,7 +59,7 @@ defmodule AntPressWeb.UserLive.ConfirmationTest do
       conn = follow_trigger_action(form, conn)
 
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
-               "User confirmed successfully"
+               "アカウントを確認しました"
 
       assert Accounts.get_user!(user.id).confirmed_at
       # we are logged in now
@@ -93,7 +93,7 @@ defmodule AntPressWeb.UserLive.ConfirmationTest do
       conn = follow_trigger_action(form, conn)
 
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
-               "Welcome back!"
+               "ログインしました"
 
       assert Accounts.get_user!(user.id).confirmed_at == user.confirmed_at
 

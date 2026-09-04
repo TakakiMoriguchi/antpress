@@ -71,7 +71,7 @@ defmodule AntPressWeb.ClientLiveTest do
                |> follow_redirect(conn, ~p"/clients")
 
       html = render(index_live)
-      assert html =~ "Client created successfully"
+      assert html =~ "クライアントを作成しました"
       assert html =~ "ラーメン太郎"
     end
 
@@ -80,7 +80,7 @@ defmodule AntPressWeb.ClientLiveTest do
 
       assert {:ok, form_live, _html} =
                index_live
-               |> element("#clients-#{client.id} a", "Edit")
+               |> element("#clients-#{client.id} a", "編集")
                |> render_click()
                |> follow_redirect(conn, ~p"/clients/#{client}/edit")
 
@@ -97,14 +97,14 @@ defmodule AntPressWeb.ClientLiveTest do
                |> follow_redirect(conn, ~p"/clients")
 
       html = render(index_live)
-      assert html =~ "Client updated successfully"
+      assert html =~ "クライアントを更新しました"
       assert html =~ "ラーメン太郎 本店"
     end
 
     test "deletes client in listing", %{conn: conn, client: client} do
       {:ok, index_live, _html} = live(conn, ~p"/clients")
 
-      assert index_live |> element("#clients-#{client.id} a", "Delete") |> render_click()
+      assert index_live |> element("#clients-#{client.id} a", "削除") |> render_click()
       refute has_element?(index_live, "#clients-#{client.id}")
     end
   end
@@ -115,7 +115,7 @@ defmodule AntPressWeb.ClientLiveTest do
     test "displays client", %{conn: conn, client: client} do
       {:ok, _show_live, html} = live(conn, ~p"/clients/#{client}")
 
-      assert html =~ "Show Client"
+      assert html =~ "クライアント"
       assert html =~ client.name
     end
 
@@ -124,7 +124,7 @@ defmodule AntPressWeb.ClientLiveTest do
 
       assert {:ok, form_live, _} =
                show_live
-               |> element("a", "Edit")
+               |> element("a", "編集")
                |> render_click()
                |> follow_redirect(conn, ~p"/clients/#{client}/edit?return_to=show")
 
@@ -141,7 +141,7 @@ defmodule AntPressWeb.ClientLiveTest do
                |> follow_redirect(conn, ~p"/clients/#{client}")
 
       html = render(show_live)
-      assert html =~ "Client updated successfully"
+      assert html =~ "クライアントを更新しました"
       assert html =~ "ラーメン太郎 本店"
     end
   end

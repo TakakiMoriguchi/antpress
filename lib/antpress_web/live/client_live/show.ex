@@ -8,25 +8,25 @@ defmodule AntPressWeb.ClientLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_developer={@current_developer}>
       <.header>
-        Client {@client.id}
-        <:subtitle>This is a client record from your database.</:subtitle>
+        {@client.name}
+        <:subtitle>クライアントの設定</:subtitle>
         <:actions>
           <.button navigate={~p"/clients"}>
             <.icon name="hero-arrow-left" />
           </.button>
           <.button variant="primary" navigate={~p"/clients/#{@client}/edit?return_to=show"}>
-            <.icon name="hero-pencil-square" /> Edit client
+            <.icon name="hero-pencil-square" /> 編集
           </.button>
         </:actions>
       </.header>
 
       <.list>
-        <:item title="Name">{@client.name}</:item>
-        <:item title="Slug">{@client.slug}</:item>
-        <:item title="Plan">{@client.plan}</:item>
-        <:item title="Contact notification email">{@client.contact_notification_email}</:item>
-        <:item title="Webhook url">{@client.webhook_url}</:item>
-        <:item title="Status">{@client.status}</:item>
+        <:item title="クライアント名">{@client.name}</:item>
+        <:item title="スラッグ">{@client.slug}</:item>
+        <:item title="プラン">{plan_label(@client.plan)}</:item>
+        <:item title="問い合わせ通知先">{@client.contact_notification_email || "未設定"}</:item>
+        <:item title="Webhook URL">{@client.webhook_url || "未設定"}</:item>
+        <:item title="状態">{status_label(@client.status)}</:item>
       </.list>
     </Layouts.app>
     """
@@ -40,7 +40,7 @@ defmodule AntPressWeb.ClientLive.Show do
 
     {:ok,
      socket
-     |> assign(:page_title, "Show Client")
+     |> assign(:page_title, "クライアント")
      |> assign(:client, Platform.get_client!(socket.assigns.current_developer, id))}
   end
 
@@ -66,4 +66,12 @@ defmodule AntPressWeb.ClientLive.Show do
       when type in [:created, :updated, :deleted] do
     {:noreply, socket}
   end
+
+  defp plan_label(:basic), do: "基本"
+  defp plan_label(:ai), do: "AI"
+  defp plan_label(nil), do: "—"
+
+  defp status_label(:active), do: "稼働中"
+  defp status_label(:suspended), do: "停止中"
+  defp status_label(nil), do: "—"
 end

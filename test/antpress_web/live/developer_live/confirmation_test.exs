@@ -24,7 +24,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
         end)
 
       {:ok, _lv, html} = live(conn, ~p"/developers/log-in/#{token}")
-      assert html =~ "Confirm and stay logged in"
+      assert html =~ "確認してログインしたままにする"
     end
 
     test "renders login page for confirmed developer", %{
@@ -38,7 +38,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
 
       {:ok, _lv, html} = live(conn, ~p"/developers/log-in/#{token}")
       refute html =~ "Confirm my account"
-      assert html =~ "Keep me logged in on this device"
+      assert html =~ "この端末でログインを保持する"
     end
 
     test "renders login page for already logged in developer", %{
@@ -54,7 +54,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
 
       {:ok, _lv, html} = live(conn, ~p"/developers/log-in/#{token}")
       refute html =~ "Confirm my account"
-      assert html =~ "Log in"
+      assert html =~ "ログイン"
     end
 
     test "confirms the given token once", %{conn: conn, unconfirmed_developer: developer} do
@@ -71,7 +71,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
       conn = follow_trigger_action(form, conn)
 
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
-               "Developer confirmed successfully"
+               "アカウントを確認しました"
 
       assert Platform.get_developer!(developer.id).confirmed_at
       # we are logged in now
@@ -105,7 +105,7 @@ defmodule AntPressWeb.DeveloperLive.ConfirmationTest do
       conn = follow_trigger_action(form, conn)
 
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
-               "Welcome back!"
+               "ログインしました"
 
       assert Platform.get_developer!(developer.id).confirmed_at == developer.confirmed_at
 

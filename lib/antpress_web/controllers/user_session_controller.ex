@@ -5,11 +5,11 @@ defmodule AntPressWeb.UserSessionController do
   alias AntPressWeb.UserAuth
 
   def create(conn, %{"_action" => "confirmed"} = params) do
-    create(conn, params, "User confirmed successfully.")
+    create(conn, params, "アカウントを確認しました")
   end
 
   def create(conn, params) do
-    create(conn, params, "Welcome back!")
+    create(conn, params, "ログインしました")
   end
 
   # magic link login
@@ -56,12 +56,12 @@ defmodule AntPressWeb.UserSessionController do
 
     conn
     |> put_session(:user_return_to, ~p"/client/settings")
-    |> create(params, "Password updated successfully!")
+    |> create(params, "パスワードを変更しました")
   end
 
   def delete(conn, _params) do
     conn
-    |> put_flash(:info, "Logged out successfully.")
+    |> put_flash(:info, "ログアウトしました")
     |> UserAuth.log_out_user()
   end
 end

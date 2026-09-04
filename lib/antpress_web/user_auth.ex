@@ -224,7 +224,7 @@ defmodule AntPressWeb.UserAuth do
     else
       socket =
         socket
-        |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+        |> Phoenix.LiveView.put_flash(:error, "このページを表示するにはログインが必要です")
         |> Phoenix.LiveView.redirect(to: ~p"/client/log-in")
 
       {:halt, socket}
@@ -275,7 +275,7 @@ defmodule AntPressWeb.UserAuth do
       conn
     else
       conn
-      |> put_flash(:error, "You must log in to access this page.")
+      |> put_flash(:error, "このページを表示するにはログインが必要です")
       |> maybe_store_return_to()
       |> redirect(to: ~p"/client/log-in")
       |> halt()

@@ -109,7 +109,7 @@ defmodule AntPressWeb.ClientLive.Form do
       {:ok, client} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Client updated successfully")
+         |> put_flash(:info, "クライアントを更新しました")
          |> push_navigate(
            to: return_path(socket.assigns.current_developer, socket.assigns.return_to, client)
          )}
@@ -124,7 +124,7 @@ defmodule AntPressWeb.ClientLive.Form do
       {:ok, client} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Client created successfully")
+         |> put_flash(:info, "クライアントを作成しました")
          |> push_navigate(
            to: return_path(socket.assigns.current_developer, socket.assigns.return_to, client)
          )}

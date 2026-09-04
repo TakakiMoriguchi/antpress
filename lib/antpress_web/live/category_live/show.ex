@@ -8,8 +8,8 @@ defmodule AntPressWeb.CategoryLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <.header>
-        Category {@category.id}
-        <:subtitle>This is a category record from your database.</:subtitle>
+        {@category.name}
+        <:subtitle>カテゴリの設定</:subtitle>
         <:actions>
           <.button navigate={~p"/client/categories"}>
             <.icon name="hero-arrow-left" />
@@ -18,15 +18,15 @@ defmodule AntPressWeb.CategoryLive.Show do
             variant="primary"
             navigate={~p"/client/categories/#{@category}/edit?return_to=show"}
           >
-            <.icon name="hero-pencil-square" /> Edit category
+            <.icon name="hero-pencil-square" /> 編集
           </.button>
         </:actions>
       </.header>
 
       <.list>
-        <:item title="Name">{@category.name}</:item>
-        <:item title="Slug">{@category.slug}</:item>
-        <:item title="Position">{@category.position}</:item>
+        <:item title="カテゴリ名">{@category.name}</:item>
+        <:item title="スラッグ">{@category.slug}</:item>
+        <:item title="表示順">{@category.position}</:item>
       </.list>
     </Layouts.app>
     """
@@ -40,7 +40,7 @@ defmodule AntPressWeb.CategoryLive.Show do
 
     {:ok,
      socket
-     |> assign(:page_title, "Show Category")
+     |> assign(:page_title, "カテゴリ")
      |> assign(:category, Blog.get_category!(socket.assigns.current_user, id))}
   end
 

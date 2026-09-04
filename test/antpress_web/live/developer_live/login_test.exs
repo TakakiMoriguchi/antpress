@@ -9,7 +9,7 @@ defmodule AntPressWeb.DeveloperLive.LoginTest do
       {:ok, _lv, html} = live(conn, ~p"/developers/log-in")
 
       assert html =~ "antpress にログイン"
-      assert html =~ "Log in with email"
+      assert html =~ "メールでログイン"
       # セルフサインアップは提供しない（→ docs/DECISIONS.md 1.3）
       refute html =~ "Sign up"
       refute html =~ "/developers/register"
@@ -94,7 +94,7 @@ defmodule AntPressWeb.DeveloperLive.LoginTest do
 
       assert html =~ "再認証が必要です"
       refute html =~ "Register"
-      assert html =~ "Log in with email"
+      assert html =~ "メールでログイン"
 
       assert html =~
                ~s(<input type="email" name="developer[email]" id="login_form_magic_email" value="#{developer.email}")

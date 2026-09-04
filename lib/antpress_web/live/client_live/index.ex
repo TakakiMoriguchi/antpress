@@ -31,16 +31,16 @@ defmodule AntPressWeb.ClientLive.Index do
         <:col :let={{_id, client}} label="状態">{status_label(client.status)}</:col>
         <:action :let={{_id, client}}>
           <div class="sr-only">
-            <.link navigate={~p"/clients/#{client}"}>Show</.link>
+            <.link navigate={~p"/clients/#{client}"}>詳細</.link>
           </div>
-          <.link navigate={~p"/clients/#{client}/edit"}>Edit</.link>
+          <.link navigate={~p"/clients/#{client}/edit"}>編集</.link>
         </:action>
         <:action :let={{id, client}}>
           <.link
             phx-click={JS.push("delete", value: %{id: client.id}) |> hide("##{id}")}
             data-confirm="このクライアントを削除します。記事・画像・問い合わせもすべて失われます。よろしいですか？"
           >
-            Delete
+            削除
           </.link>
         </:action>
       </.table>

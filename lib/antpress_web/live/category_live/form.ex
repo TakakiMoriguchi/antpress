@@ -81,7 +81,7 @@ defmodule AntPressWeb.CategoryLive.Form do
       {:ok, category} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Category updated successfully")
+         |> put_flash(:info, "カテゴリを更新しました")
          |> push_navigate(
            to: return_path(socket.assigns.current_user, socket.assigns.return_to, category)
          )}
@@ -96,7 +96,7 @@ defmodule AntPressWeb.CategoryLive.Form do
       {:ok, category} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Category created successfully")
+         |> put_flash(:info, "カテゴリを作成しました")
          |> push_navigate(
            to: return_path(socket.assigns.current_user, socket.assigns.return_to, category)
          )}

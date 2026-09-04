@@ -24,9 +24,9 @@ defmodule AntPressWeb.DeveloperLive.Login do
         <div :if={local_mail_adapter?()} class="alert alert-info">
           <.icon name="hero-information-circle" class="size-6 shrink-0" />
           <div>
-            <p>You are running the local mail adapter.</p>
+            <p>開発用のメールアダプタで動作しています。</p>
             <p>
-              To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
+              送信されたメールは <.link href="/dev/mailbox" class="underline">メールボックス</.link> で確認できます。
             </p>
           </div>
         </div>
@@ -42,18 +42,18 @@ defmodule AntPressWeb.DeveloperLive.Login do
             readonly={!!@current_developer}
             field={f[:email]}
             type="email"
-            label="Email"
+            label="メールアドレス"
             autocomplete="username"
             spellcheck="false"
             required
             phx-mounted={JS.focus()}
           />
           <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
+            メールでログイン <span aria-hidden="true">→</span>
           </.button>
         </.form>
 
-        <div class="divider">or</div>
+        <div class="divider">または</div>
 
         <.form
           :let={f}
@@ -67,7 +67,7 @@ defmodule AntPressWeb.DeveloperLive.Login do
             readonly={!!@current_developer}
             field={f[:email]}
             type="email"
-            label="Email"
+            label="メールアドレス"
             autocomplete="username"
             spellcheck="false"
             required
@@ -75,15 +75,15 @@ defmodule AntPressWeb.DeveloperLive.Login do
           <.input
             field={@form[:password]}
             type="password"
-            label="Password"
+            label="パスワード"
             autocomplete="current-password"
             spellcheck="false"
           />
           <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-            Log in and stay logged in <span aria-hidden="true">→</span>
+            ログインしたままにする <span aria-hidden="true">→</span>
           </.button>
           <.button class="btn btn-primary btn-soft w-full mt-2">
-            Log in only this time
+            今回だけログイン
           </.button>
         </.form>
       </div>

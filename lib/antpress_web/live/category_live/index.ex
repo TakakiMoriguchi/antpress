@@ -26,16 +26,16 @@ defmodule AntPressWeb.CategoryLive.Index do
         <:col :let={{_id, category}} label="表示順">{category.position}</:col>
         <:action :let={{_id, category}}>
           <div class="sr-only">
-            <.link navigate={~p"/client/categories/#{category}"}>Show</.link>
+            <.link navigate={~p"/client/categories/#{category}"}>詳細</.link>
           </div>
-          <.link navigate={~p"/client/categories/#{category}/edit"}>Edit</.link>
+          <.link navigate={~p"/client/categories/#{category}/edit"}>編集</.link>
         </:action>
         <:action :let={{id, category}}>
           <.link
             phx-click={JS.push("delete", value: %{id: category.id}) |> hide("##{id}")}
             data-confirm="このカテゴリを削除します。よろしいですか？"
           >
-            Delete
+            削除
           </.link>
         </:action>
       </.table>

@@ -10,7 +10,7 @@ defmodule AntPressWeb.UserLive.LoginTest do
 
       assert html =~ "antpress にログイン"
       refute html =~ "Sign up"
-      assert html =~ "Log in with email"
+      assert html =~ "メールでログイン"
     end
   end
 
@@ -86,7 +86,7 @@ defmodule AntPressWeb.UserLive.LoginTest do
 
       assert html =~ "再認証が必要です"
       refute html =~ "Register"
-      assert html =~ "Log in with email"
+      assert html =~ "メールでログイン"
 
       assert html =~
                ~s(<input type="email" name="user[email]" id="login_form_magic_email" value="#{user.email}")

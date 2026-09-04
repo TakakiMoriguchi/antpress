@@ -48,7 +48,7 @@ defmodule AntPressWeb.CategoryLiveTest do
                |> follow_redirect(conn, ~p"/client/categories")
 
       html = render(index_live)
-      assert html =~ "Category created successfully"
+      assert html =~ "カテゴリを作成しました"
       assert html =~ "季節限定"
     end
 
@@ -57,7 +57,7 @@ defmodule AntPressWeb.CategoryLiveTest do
 
       assert {:ok, form_live, _html} =
                index_live
-               |> element("#blog_categories-#{category.id} a", "Edit")
+               |> element("#blog_categories-#{category.id} a", "編集")
                |> render_click()
                |> follow_redirect(conn, ~p"/client/categories/#{category}/edit")
 
@@ -74,7 +74,7 @@ defmodule AntPressWeb.CategoryLiveTest do
                |> follow_redirect(conn, ~p"/client/categories")
 
       html = render(index_live)
-      assert html =~ "Category updated successfully"
+      assert html =~ "カテゴリを更新しました"
       assert html =~ "季節のおすすめ"
     end
 
@@ -82,7 +82,7 @@ defmodule AntPressWeb.CategoryLiveTest do
       {:ok, index_live, _html} = live(conn, ~p"/client/categories")
 
       assert index_live
-             |> element("#blog_categories-#{category.id} a", "Delete")
+             |> element("#blog_categories-#{category.id} a", "削除")
              |> render_click()
 
       refute has_element?(index_live, "#blog_categories-#{category.id}")
@@ -95,7 +95,7 @@ defmodule AntPressWeb.CategoryLiveTest do
     test "displays category", %{conn: conn, category: category} do
       {:ok, _show_live, html} = live(conn, ~p"/client/categories/#{category}")
 
-      assert html =~ "Show Category"
+      assert html =~ "カテゴリ"
       assert html =~ category.name
     end
 
@@ -104,7 +104,7 @@ defmodule AntPressWeb.CategoryLiveTest do
 
       assert {:ok, form_live, _} =
                show_live
-               |> element("a", "Edit")
+               |> element("a", "編集")
                |> render_click()
                |> follow_redirect(conn, ~p"/client/categories/#{category}/edit?return_to=show")
 
@@ -121,7 +121,7 @@ defmodule AntPressWeb.CategoryLiveTest do
                |> follow_redirect(conn, ~p"/client/categories/#{category}")
 
       html = render(show_live)
-      assert html =~ "Category updated successfully"
+      assert html =~ "カテゴリを更新しました"
       assert html =~ "季節のおすすめ"
     end
   end

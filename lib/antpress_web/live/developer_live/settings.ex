@@ -68,7 +68,7 @@ defmodule AntPressWeb.DeveloperLive.Settings do
           spellcheck="false"
         />
         <.button variant="primary" phx-disable-with="保存中...">
-          Save Password
+          パスワードを変更
         </.button>
       </.form>
     </Layouts.app>

@@ -9,7 +9,7 @@ defmodule AntPressWeb.DeveloperLive.Confirmation do
     <Layouts.app flash={@flash} current_developer={@current_developer}>
       <div class="mx-auto max-w-sm">
         <div class="text-center">
-          <.header>Welcome {@developer.email}</.header>
+          <.header>ようこそ {@developer.email}</.header>
         </div>
 
         <.form
@@ -25,13 +25,13 @@ defmodule AntPressWeb.DeveloperLive.Confirmation do
           <.button
             name={@form[:remember_me].name}
             value="true"
-            phx-disable-with="Confirming..."
+            phx-disable-with="確認中..."
             class="btn btn-primary w-full"
           >
-            Confirm and stay logged in
+            確認してログインしたままにする
           </.button>
-          <.button phx-disable-with="Confirming..." class="btn btn-primary btn-soft w-full mt-2">
-            Confirm and log in only this time
+          <.button phx-disable-with="確認中..." class="btn btn-primary btn-soft w-full mt-2">
+            確認して今回だけログイン
           </.button>
         </.form>
 
@@ -46,20 +46,23 @@ defmodule AntPressWeb.DeveloperLive.Confirmation do
         >
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
           <%= if @current_developer do %>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary w-full">
-              Log in
+            <.button phx-disable-with="ログイン中..." class="btn btn-primary w-full">
+              ログイン
             </.button>
           <% else %>
             <.button
               name={@form[:remember_me].name}
               value="true"
-              phx-disable-with="Logging in..."
+              phx-disable-with="ログイン中..."
               class="btn btn-primary w-full"
             >
-              Keep me logged in on this device
+              この端末でログインを保持する
             </.button>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary btn-soft w-full mt-2">
-              Log me in only this time
+            <.button
+              phx-disable-with="ログイン中..."
+              class="btn btn-primary btn-soft w-full mt-2"
+            >
+              今回だけログイン
             </.button>
           <% end %>
         </.form>
