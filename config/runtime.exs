@@ -29,6 +29,27 @@ end
 config :antpress, AntPressWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4001"))]
 
+# 画像の保存先を Supabase Storage に切り替える（開発・任意）。
+#
+# SUPABASE_URL を設定しておくと、開発環境でも本番と同じ経路を通せる。
+# 設定していなければ config.exs のローカルディスクのままになる。
+#
+# ⚠️ config/2 はキーワードリストをマージするので、ローカル用の :root などは
+#    残る。効くのは :adapter が Supabase に差し替わることによる。
+if config_env() in [:dev, :prod] and System.get_env("SUPABASE_URL") do
+  config :antpress, :storage,
+    adapter: AntPress.Storage.Supabase,
+    url: System.get_env("SUPABASE_URL"),
+    service_role_key:
+      System.get_env("SUPABASE_SERVICE_ROLE_KEY") ||
+        raise("""
+        environment variable SUPABASE_SERVICE_ROLE_KEY is missing.
+        SUPABASE_URL を設定したら service role キーも必要です。
+        Supabase の Project Settings → API から取得してください。
+        """),
+    bucket: System.get_env("SUPABASE_STORAGE_BUCKET") || "antpress"
+end
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :antpress, AntPressWeb.Endpoint,
@@ -59,6 +80,16 @@ if config_env() == :prod do
     ciphers: [
       default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
     ]
+
+  # ⚠️ 本番でローカルディスクに落とさない。
+  #    Fly.io のファイルシステムは揮発するため、設定を忘れたまま動くと
+  #    アップロードした画像が再起動で消える。起動時に落とす方が安全。
+  #    バケットは **public** で作ること（→ lib/antpress/storage/supabase.ex）。
+  System.get_env("SUPABASE_URL") ||
+    raise """
+    environment variable SUPABASE_URL is missing.
+    For example: https://xxxxxxxx.supabase.co
+    """
 
   database_url =
     System.get_env("DATABASE_URL") ||

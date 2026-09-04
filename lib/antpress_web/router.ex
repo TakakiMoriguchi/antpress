@@ -88,6 +88,10 @@ defmodule AntPressWeb.Router do
       live "/client/categories/new", CategoryLive.Form, :new
       live "/client/categories/:id", CategoryLive.Show, :show
       live "/client/categories/:id/edit", CategoryLive.Form, :edit
+
+      # 画像管理（→ docs/SCREENS.md C6）
+      # アップロード・alt 設定・削除を 1 画面で行うので 1 ルートだけ
+      live "/client/images", ImageLive.Index, :index
     end
 
     post "/client/update-password", UserSessionController, :update_password

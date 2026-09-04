@@ -93,6 +93,13 @@ config :tailwind,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
+# 画像本体の保存先（→ lib/antpress/storage.ex）
+#
+# 既定はローカルディスク。本番は config/runtime.exs が Supabase Storage を
+# **必須**にして上書きする（Fly.io のディスクは揮発するため、
+# ローカルのまま本番に出ると再起動で画像が消える）。
+config :antpress, :storage, adapter: AntPress.Storage.Local
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

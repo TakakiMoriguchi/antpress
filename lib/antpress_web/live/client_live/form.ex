@@ -48,7 +48,7 @@ defmodule AntPressWeb.ClientLive.Form do
         />
         <footer>
           <.button phx-disable-with="保存中..." variant="primary">保存</.button>
-          <.button navigate={return_path(@current_developer, @return_to, @client)}>Cancel</.button>
+          <.button navigate={return_path(@current_developer, @return_to, @client)}>キャンセル</.button>
         </footer>
       </.form>
     </Layouts.app>

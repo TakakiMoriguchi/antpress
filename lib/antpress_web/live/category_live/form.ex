@@ -10,7 +10,7 @@ defmodule AntPressWeb.CategoryLive.Form do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <.header>
         {@page_title}
-        <:subtitle>Use this form to manage category records in your database.</:subtitle>
+        <:subtitle>記事の分類に使います。スラッグは記事 URL に含まれます。</:subtitle>
       </.header>
 
       <.form for={@form} id="category-form" phx-change="validate" phx-submit="save">
@@ -24,7 +24,7 @@ defmodule AntPressWeb.CategoryLive.Form do
         <.input field={@form[:position]} type="number" label="表示順" />
         <footer>
           <.button phx-disable-with="保存中..." variant="primary">保存</.button>
-          <.button navigate={return_path(@current_user, @return_to, @category)}>Cancel</.button>
+          <.button navigate={return_path(@current_user, @return_to, @category)}>キャンセル</.button>
         </footer>
       </.form>
     </Layouts.app>

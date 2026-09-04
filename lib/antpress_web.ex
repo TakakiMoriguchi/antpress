@@ -17,7 +17,9 @@ defmodule AntPressWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  # `uploads` は開発時のアップロード画像置き場（→ lib/antpress/storage/local.ex）。
+  # `images` は Phoenix の静的アセット用で別物。混ぜないこと
+  def static_paths, do: ~w(assets fonts images uploads favicon.ico robots.txt)
 
   def router do
     quote do

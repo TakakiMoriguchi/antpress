@@ -1,7 +1,9 @@
 # ─── シークレット（最優先）───────────────────────────
 # Supabase の接続情報、Anthropic API キーの暗号鍵、Resend の API キーなど
-.env
-.env.*
+# ⚠️ パターンは `.env*` にする。`.env.*` だと Finder の複製で作られる
+#    「.env copy.example」のようなスペース入りの名前がすり抜ける。
+#    実際に本物の service_role キーが入ったファイルが未追跡で出た。
+.env*
 !.env.example
 
 # ─── Elixir / Phoenix ──────────────────────────────
@@ -25,3 +27,6 @@ npm-debug.log
 
 # ─── macOS ────────────────────────────────────────
 .DS_Store
+
+# 開発時にアップロードした画像（本番は Supabase Storage）
+/priv/static/uploads/

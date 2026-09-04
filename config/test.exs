@@ -24,6 +24,15 @@ config :antpress, AntPressWeb.Endpoint,
   secret_key_base: "hAuMkM2NL4uIBigwS0vEQGy5BMJPih8pwft1FIHY9D/5ZpDg2sTeAyn5fTh5ZG1s",
   server: false
 
+# テストはネットワークに依存させない。常にローカルディスクを使い、
+# 書き込み先はプロジェクト外の一時ディレクトリにしてリポジトリを汚さない。
+# Supabase アダプタ自体は Req.Test をプラグで差し込んで検証する
+# （→ test/antpress/storage/supabase_test.exs）。
+config :antpress, :storage,
+  adapter: AntPress.Storage.Local,
+  root: Path.join(System.tmp_dir!(), "antpress-test-uploads"),
+  url_prefix: "/uploads"
+
 # In test we don't send emails
 config :antpress, AntPress.Mailer, adapter: Swoosh.Adapters.Test
 

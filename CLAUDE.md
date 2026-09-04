@@ -63,6 +63,43 @@ def list_articles, do: Repo.all(Article)
 
 ---
 
+## ⚠️ 画像は「公開」、配信 API は「非公開」
+
+**同じ Supabase プロジェクトでも扱いが逆。混同すると片方が壊れる。**
+
+| | 認証 | CORS |
+| --- | --- | --- |
+| 配信 API `/api/v1/*` | **Bearer 必須** | **全拒否** |
+| 画像（Storage の public バケット） | **なし** | ブラウザから直接読める |
+
+画像は HP の `<img src>` から読まれるので、認証を要求すると**記事本文に
+埋めた画像が壊れる。** バケットは `antpress`、**Public** で作る。
+パスに推測不能な UUID が入るだけで秘匿性はない前提で扱う。
+
+### ストレージは差し替え可能。テストはネットワークに依存させない
+
+`AntPress.Storage`（behaviour）＋ `Local`（dev / test）/ `Supabase`（本番）。
+
+- `SUPABASE_URL` が設定されていれば Supabase、無ければローカルディスク
+- **本番は未設定なら起動時に落とす**（Fly.io のディスクは揮発するため、
+  設定漏れに気付かないまま画像が消えるのを防ぐ）
+- Supabase アダプタのテストは `Req.Test` をプラグで差し込む。
+  設定に `:plug` を渡せる穴を空けてある
+- 環境変数は `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` /
+  `SUPABASE_STORAGE_BUCKET`（→ `.env.example`）
+
+### ⚠️ アップロードされたファイルの申告を信用しない
+
+- **MIME タイプはブラウザの申告を使わない。** バイナリの先頭バイトから
+  判定する（`AntPress.Media.Probe`）
+- **ファイル名を保存パスに使わない。** パスは
+  `clients/{client_id}/{uuid}.{ext}` を antpress 側が組む
+- **SVG は対応形式に含めない。** スクリプトを埋め込めるため
+- ユーザーが編集できるのは `alt_text` だけ。changeset を
+  `create_changeset/3` と `alt_text_changeset/2` に分けてある
+
+---
+
 ## 実装しないもの（「親切に」追加しないこと）
 
 以下は**検討の上で不採用**にした。追加を提案しないこと。理由は `docs/DECISIONS.md` にある。
@@ -77,6 +114,7 @@ def list_articles, do: Repo.all(Article)
 | **表示テーマ / ページビルダー** | スコープ外 |
 | **EC** | 将来検討。今のデータモデルを EC 前提で複雑にしない |
 | **ダッシュボード / 収益画面** | 表示する指標がなく画面が増えるだけ |
+| **画像のリサイズ / サムネイル生成** | HP は Astro なので `<Image>` がビルド時に最適化できる。配信側で作ると同じ処理が 2 箇所に存在する |
 
 ---
 
@@ -184,6 +222,8 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
       developer / client / api_key → platform/
       user（owner / staff）        → accounts/
       記事・カテゴリ               → blog/
+      画像                         → media/
+      外部サービスの口（インフラ）   → 直下（storage.ex / mailer.ex / vault.ex）
 
 3. （lib/antpress_web/ なら）状態を持つ画面か？
       YES → live/              NO → controllers/
@@ -237,6 +277,7 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
   | `AntPress.Platform` | `developers`, `clients`, `api_keys`（運営・再販の管理領域） |
   | `AntPress.Accounts` | `users`（owner / staff） |
   | `AntPress.Blog` | `blog_articles`, `blog_categories` |
+  | `AntPress.Media` | `images`（クライアントの素材置き場） |
   | （将来）`AntPress.Commerce` | EC |
 - 外部キー列は `article_id`（`blog_article_id` にしない。Ecto の慣例に従う）
 - 主キーは**全テーブル UUID**（`--binary-id` で生成済み）
@@ -298,6 +339,12 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 # 最初の admin を作る
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
 ```
+
+### ⚠️ `.gitignore` の env パターンは `.env*`（`.env.*` にしない）
+
+`.env.*` だと Finder の複製で作られる **`.env copy.example`** のような
+スペース入りの名前がすり抜ける。実際に本物の接続情報が入ったファイルが
+未追跡で出た。`!.env.example` で雛形だけ追跡対象に戻している。
 
 ### 言語
 
