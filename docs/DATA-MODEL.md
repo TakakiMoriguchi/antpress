@@ -175,7 +175,7 @@ erDiagram
 | --- | --- | --- | --- |
 | `id` | uuid | PK | |
 | `role` | enum | not null, default `developer` | `admin` / `developer`。DB 側に CHECK 制約も張る |
-| `name` | string | not null | 屋号・氏名 |
+| `name` | string | not null | 屋号 |
 | `email` | **citext** | not null, unique | 大文字小文字を区別しない（`phx.gen.auth` が採用） |
 | `hashed_password` | string | **nullable** | パスワードは**任意**（→ 下記） |
 | `anthropic_api_key` | binary | | **暗号化して保存**（→ 下記） |

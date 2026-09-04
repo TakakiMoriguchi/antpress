@@ -12,8 +12,18 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         |> log_in_developer(developer_fixture())
         |> live(~p"/developers/settings")
 
-      assert html =~ "Change Email"
-      assert html =~ "Save Password"
+      assert html =~ "アカウント設定"
+      assert html =~ "表示テーマ"
+      assert html =~ "屋号"
+      assert html =~ "メールアドレス"
+      assert html =~ "パスワードを変更"
+      # メールアドレスと屋号は変更不可（表示のみ）。
+      # パスワードフォームは hidden でメールを送る（パスワードマネージャ向け）ので、
+      # 編集可能な入力欄がないことで確認する
+      refute html =~ ~s(name="developer[email]" type="email")
+      refute html =~ ~s(name="developer[name]")
+      refute html =~ "email_form"
+      refute html =~ "profile_form"
     end
 
     test "redirects if developer is not logged in", %{conn: conn} do
@@ -34,58 +44,6 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         |> follow_redirect(conn, ~p"/developers/log-in")
 
       assert conn.resp_body =~ "You must re-authenticate to access this page."
-    end
-  end
-
-  describe "update email form" do
-    setup %{conn: conn} do
-      developer = developer_fixture()
-      %{conn: log_in_developer(conn, developer), developer: developer}
-    end
-
-    test "updates the developer email", %{conn: conn, developer: developer} do
-      new_email = unique_developer_email()
-
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
-
-      result =
-        lv
-        |> form("#email_form", %{
-          "developer" => %{"email" => new_email}
-        })
-        |> render_submit()
-
-      assert result =~ "A link to confirm your email"
-      assert Platform.get_developer_by_email(developer.email)
-    end
-
-    test "renders errors with invalid data (phx-change)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
-
-      result =
-        lv
-        |> element("#email_form")
-        |> render_change(%{
-          "action" => "update_email",
-          "developer" => %{"email" => "with spaces"}
-        })
-
-      assert result =~ "Change Email"
-      assert result =~ "must have the @ sign and no spaces"
-    end
-
-    test "renders errors with invalid data (phx-submit)", %{conn: conn, developer: developer} do
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
-
-      result =
-        lv
-        |> form("#email_form", %{
-          "developer" => %{"email" => developer.email}
-        })
-        |> render_submit()
-
-      assert result =~ "Change Email"
-      assert result =~ "did not change"
     end
   end
 
@@ -161,62 +119,4 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
     end
   end
 
-  describe "confirm email" do
-    setup %{conn: conn} do
-      developer = developer_fixture()
-      email = unique_developer_email()
-
-      token =
-        extract_developer_token(fn url ->
-          Platform.deliver_developer_update_email_instructions(
-            %{developer | email: email},
-            developer.email,
-            url
-          )
-        end)
-
-      %{conn: log_in_developer(conn, developer), token: token, email: email, developer: developer}
-    end
-
-    test "updates the developer email once", %{
-      conn: conn,
-      developer: developer,
-      token: token,
-      email: email
-    } do
-      {:error, redirect} = live(conn, ~p"/developers/settings/confirm-email/#{token}")
-
-      assert {:live_redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/developers/settings"
-      assert %{"info" => message} = flash
-      assert message == "Email changed successfully."
-      refute Platform.get_developer_by_email(developer.email)
-      assert Platform.get_developer_by_email(email)
-
-      # use confirm token again
-      {:error, redirect} = live(conn, ~p"/developers/settings/confirm-email/#{token}")
-      assert {:live_redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/developers/settings"
-      assert %{"error" => message} = flash
-      assert message == "Email change link is invalid or it has expired."
-    end
-
-    test "does not update email with invalid token", %{conn: conn, developer: developer} do
-      {:error, redirect} = live(conn, ~p"/developers/settings/confirm-email/oops")
-      assert {:live_redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/developers/settings"
-      assert %{"error" => message} = flash
-      assert message == "Email change link is invalid or it has expired."
-      assert Platform.get_developer_by_email(developer.email)
-    end
-
-    test "redirects if developer is not logged in", %{token: token} do
-      conn = build_conn()
-      {:error, redirect} = live(conn, ~p"/developers/settings/confirm-email/#{token}")
-      assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/developers/log-in"
-      assert %{"error" => message} = flash
-      assert message == "You must log in to access this page."
-    end
-  end
 end

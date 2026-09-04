@@ -49,7 +49,6 @@ defmodule AntPressWeb.Router do
     live_session :require_authenticated_developer,
       on_mount: [{AntPressWeb.DeveloperAuth, :require_authenticated}] do
       live "/developers/settings", DeveloperLive.Settings, :edit
-      live "/developers/settings/confirm-email/:token", DeveloperLive.Settings, :confirm_email
 
       # クライアント管理（→ docs/SCREENS.md D3〜D5）
       # admin と developer が共用する。スコープは Platform 側で強制する
@@ -83,7 +82,6 @@ defmodule AntPressWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{AntPressWeb.UserAuth, :require_authenticated}] do
       live "/client/settings", UserLive.Settings, :edit
-      live "/client/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
 
     post "/client/update-password", UserSessionController, :update_password
