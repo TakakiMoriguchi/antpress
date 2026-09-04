@@ -24,15 +24,13 @@ defmodule AntPressWeb.DeveloperLive.Settings do
         <AntPressWeb.Layouts.theme_toggle />
       </div>
 
-      <.form
-        for={@profile_form}
-        id="profile_form"
-        phx-submit="update_profile"
-        phx-change="validate_profile"
-      >
-        <.input field={@profile_form[:name]} type="text" label="屋号・氏名" required />
-        <.button variant="primary" phx-disable-with="保存中...">保存</.button>
-      </.form>
+      <div class="rounded-lg border border-base-300 p-4">
+        <p class="font-semibold">屋号・氏名</p>
+        <p class="mt-1">{@current_developer.developer.name}</p>
+        <p class="mt-1 text-sm opacity-60">
+          アカウントは運営者が発行します。変更が必要な場合はお問い合わせください。
+        </p>
+      </div>
 
       <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
         <.input
@@ -111,38 +109,12 @@ defmodule AntPressWeb.DeveloperLive.Settings do
       |> assign(:current_email, developer.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))
-      |> assign(:profile_form, to_form(Platform.change_developer_profile(developer)))
       |> assign(:trigger_submit, false)
 
     {:ok, socket}
   end
 
   @impl true
-  def handle_event("validate_profile", %{"developer" => params}, socket) do
-    changeset =
-      socket.assigns.current_developer.developer
-      |> Platform.change_developer_profile(params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :profile_form, to_form(changeset))}
-  end
-
-  def handle_event("update_profile", %{"developer" => params}, socket) do
-    case Platform.update_developer_profile(socket.assigns.current_developer.developer, params) do
-      {:ok, developer} ->
-        scope = %{socket.assigns.current_developer | developer: developer}
-
-        {:noreply,
-         socket
-         |> assign(:current_developer, scope)
-         |> assign(:profile_form, to_form(Platform.change_developer_profile(developer)))
-         |> put_flash(:info, "屋号・氏名を更新しました")}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, :profile_form, to_form(Map.put(changeset, :action, :insert)))}
-    end
-  end
-
   def handle_event("validate_email", params, socket) do
     %{"developer" => developer_params} = params
 
