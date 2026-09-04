@@ -588,7 +588,9 @@ AI プランは「原文の textarea ＋ 生成結果の表示」が中心でリ
 | 2026-09-03 | 生成された `/developers/register`（セルフサインアップ）を削除 | 「セルフサインアップは一切行わない」（1.3）と矛盾するため。作成経路は seed と admin 発行のみ |
 | 2026-09-03 | 最初の admin は `priv/repo/seeds.exs` で作成する | セルフサインアップがないため初期アカウントの投入経路が必要 |
 | 2026-09-03 | パスワードハッシュは **bcrypt**（Phoenix の Unix 既定） | argon2 はより堅牢だが CPU・メモリを多く要し、Fly.io の小さいインスタンスに合わない |
-| 2026-09-03 | Ecto コンテキストは `Platform` / `Tenancy` / `Accounts` / `Blog` に分ける | 3 階層モデルの各層と対応させる |
+| 2026-09-03 | ~~Ecto コンテキストは `Platform` / `Tenancy` / `Accounts` / `Blog` に分ける~~ → **`Tenancy` を撤回** | 下記参照 |
+| 2026-09-04 | **Ecto コンテキストは `Platform` / `Accounts` / `Blog` の 3 つ。`Tenancy` は作らない** | `Tenancy` は `Client` 1 つだけを持つ予定で、**スキーマ 1 つのコンテキストは名前が情報を足さない**。`clients` と `api_keys` を `Platform` に統合すると `Platform` が developer / client / api_key を持ち名前が意味を持つ。意味的にも `Platform`＝運営・再販の管理領域で、developer が client を管理する行為はその領域そのもの |
+| 2026-09-04 | `Accounts` は改名しない | `users` と `users_tokens` の 2 つを持つので Phoenix 公式例（`Accounts` に `User` / `UserToken`）と同形 |
 | 2026-09-04 | ~~`body_html` の一括再生成 mix タスクを用意する~~ → **撤回** | 相談なく `DATA-MODEL.md` に書いていた提案で、機能スコープ外だった。事象（キャッシュの陳腐化）の記録に留め、実際に必要になるまで作らない |
 | 2026-09-04 | 独自 namespace（`lib/antpress_batch` 等）は切らない | `_web` は Phoenix 1.2 以前に別 OTP アプリだった名残。独立の基準は「独自の依存を持つ大きな塊か」。バッチはドメインロジック、CLI は `lib/mix/tasks/` |
 | 2026-09-04 | 画面固有の JS は Phoenix 1.8 の **colocated hooks** で LiveView の隣に書く | `assets/js/` に別ファイルを作らずに済む。`assets/` はビルドツールのエントリポイント専用になる |

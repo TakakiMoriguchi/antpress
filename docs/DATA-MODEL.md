@@ -77,8 +77,7 @@ end
 **Phoenix のコンテキストと対応する。**
 
 ```
-AntPress.Platform  → developers, developers_tokens   （admin / developer）
-AntPress.Tenancy   → clients                          （テナント）
+AntPress.Platform  → developers, developers_tokens, clients, api_keys
 AntPress.Accounts  → users, users_tokens              （owner / staff）
 AntPress.Blog      → blog_articles, blog_categories
 AntPress.Commerce  → （将来）commerce_products, commerce_categories, ...
@@ -98,7 +97,32 @@ AntPress.Commerce  → （将来）commerce_products, commerce_categories, ...
 - 「固定スキーマ」の設計思想（`DECISIONS.md` 1.2）に反する
 - ドメインごとに独立したテーブルを持つ方が単純で安全
 
-### 1.5 タグは作らない
+### 1.5 コンテキストは「中身が 2 つ以上あるもの」だけ切る
+
+`clients` は **`Platform` に入れる。`Tenancy` コンテキストは作らない。**
+
+**理由**: `Tenancy` は `Client` 1 つだけを持つ予定だった。
+**スキーマ 1 つのコンテキストは、コンテキスト名が何の情報も足さない。**
+`Platform` 側も `Developer` だけだと同じ問題を抱えていた。
+
+統合すると `Platform` が developer / client / api_key を持ち、名前が意味を持つ。
+
+```elixir
+Platform.list_clients(developer)          # developer が自分のクライアント一覧を見る
+Platform.create_client(developer, attrs)
+Platform.get_client!(developer, id)       # 2 段スコープはここで強制する
+```
+
+意味的にも `Platform` は「antpress を運営・再販する側の管理領域」であり、
+developer が自分の client を管理する行為はその領域そのもの。
+
+`api_keys` も `Platform` に置く。**発行するのは developer** で、
+画面も `/clients/:id/api_keys`（developer 側）にある。
+
+> ℹ️ `Accounts` は `users` と `users_tokens` の 2 つを持つので Phoenix 公式例
+> （`Accounts` に `User` と `UserToken`）と同じ形になる。改名も分割もしない。
+
+### 1.6 タグは作らない
 
 **`blog_tags` / `blog_article_tags` は設けない。** カテゴリのみで分類する。
 

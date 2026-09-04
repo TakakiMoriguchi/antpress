@@ -22,7 +22,7 @@ defmodule AntPress.Platform.Developer do
     field :status, Ecto.Enum, values: [:active, :suspended], default: :active
     field :note, :string
 
-    # NOTE: has_many :clients は AntPress.Tenancy.Client 作成後（実装順序 2）に追加する
+    # NOTE: has_many :clients は AntPress.Platform.Client 作成後（実装順序 2）に追加する
 
     timestamps(type: :utc_datetime)
   end

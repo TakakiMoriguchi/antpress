@@ -144,7 +144,7 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
 
 ```
 境界 1  lib/antpress/  ⟷  lib/antpress_web/     Phoenix の中核原則
-境界 2  コンテキスト分割（Platform / Tenancy / Accounts / Blog）
+境界 2  コンテキスト分割（Platform / Accounts / Blog）
 ```
 
 **依存は一方通行。** `lib/antpress/` の中に `Plug` / `conn` / HTML が出てきたら設計違反。
@@ -161,8 +161,9 @@ Compose のプロジェクト名が `app` になり、**無関係な別プロジ
       YES → lib/antpress_web/     NO → lib/antpress/
 
 2. （lib/antpress/ なら）どのドメインか？
-      developer → platform/    client → tenancy/
-      user      → accounts/    記事    → blog/
+      developer / client / api_key → platform/
+      user（owner / staff）        → accounts/
+      記事・カテゴリ               → blog/
 
 3. （lib/antpress_web/ なら）状態を持つ画面か？
       YES → live/              NO → controllers/
@@ -213,8 +214,7 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 
   | コンテキスト | 扱うもの |
   | --- | --- |
-  | `AntPress.Platform` | `developers`（admin / developer） |
-  | `AntPress.Tenancy` | `clients`（テナント） |
+  | `AntPress.Platform` | `developers`, `clients`, `api_keys`（運営・再販の管理領域） |
   | `AntPress.Accounts` | `users`（owner / staff） |
   | `AntPress.Blog` | `blog_articles`, `blog_categories` |
   | （将来）`AntPress.Commerce` | EC |
