@@ -481,6 +481,50 @@ AI プランは「原文の textarea ＋ 生成結果の表示」が中心でリ
 > <div id="editor" phx-hook="Editor" phx-update="ignore"></div>
 > ```
 
+### 4.4b コンテキスト名の検討結果
+
+| コンテキスト | 中身 |
+| --- | --- |
+| **`AntPress.Platform`** | `developers` / `clients` / `api_keys` — 運営・再販の管理領域 |
+| **`AntPress.Accounts`** | `users`（owner / staff） |
+| **`AntPress.Blog`** | `blog_articles` / `blog_categories` |
+
+`Platform` は曖昧という指摘があり、代替案を検討した上で維持を決めた。
+
+#### `Developers` を採用しなかった理由
+
+**1. 関数呼び出しでモジュール名と第 1 引数が同語になる。**
+2 段テナントスコープの関数は必ず `developer` を第 1 引数に取るため、
+この形がコード全体で数百回現れる。
+
+```elixir
+Platform.list_clients(developer)      # ✅
+Developers.list_clients(developer)    # ❌ Developers と developer が重複
+```
+
+**2. `Developers.Developer` は Phoenix が避けるよう言っている形。**
+「スキーマ名の複数形をコンテキスト名にしない」（`Users` ではなく `Accounts`）。
+
+**3. 3 つあるスキーマのうち 1 つだけを名前に採用することになり、
+`Client` と `ApiKey` が居候に見える。** 1.5 の統合の意味が消える。
+
+**4. admin も同じテーブルにいる**（`role: :admin`）。`Developers` は
+developer だけを指すので admin を含まない。
+
+#### `Agency`（代理店）を採用しなかった理由
+
+事業構造（制作者が顧客の HP を請け負う）を名指しし、関数呼び出しも
+綺麗になるため有力候補だった。ただし **admin 自身は代理店ではない**ため、
+`Platform`（テナント境界のこちら側）の方が両方を覆える。
+
+#### `Api` を採用しなかった理由
+
+- コンテキストは**ドメイン**（何についてのデータか）で切る。
+  `Api` は**インターフェース**（どうアクセスするか）で別の軸
+- **本物の API 層と衝突する。** 配信 API は
+  `lib/antpress_web/controllers/api/v1/` に置くため、同じ語が
+  2 つの意味で現れて混乱を招く
+
 ### 4.5 レート制限
 
 | 対象 | 閾値 |
@@ -591,6 +635,7 @@ AI プランは「原文の textarea ＋ 生成結果の表示」が中心でリ
 | 2026-09-03 | ~~Ecto コンテキストは `Platform` / `Tenancy` / `Accounts` / `Blog` に分ける~~ → **`Tenancy` を撤回** | 下記参照 |
 | 2026-09-04 | **Ecto コンテキストは `Platform` / `Accounts` / `Blog` の 3 つ。`Tenancy` は作らない** | `Tenancy` は `Client` 1 つだけを持つ予定で、**スキーマ 1 つのコンテキストは名前が情報を足さない**。`clients` と `api_keys` を `Platform` に統合すると `Platform` が developer / client / api_key を持ち名前が意味を持つ。意味的にも `Platform`＝運営・再販の管理領域で、developer が client を管理する行為はその領域そのもの |
 | 2026-09-04 | `Accounts` は改名しない | `users` と `users_tokens` の 2 つを持つので Phoenix 公式例（`Accounts` に `User` / `UserToken`）と同形 |
+| 2026-09-04 | **コンテキスト名は `Platform` で確定。`Developers` / `Agency` は採用しない** | 下記の比較検討の結果 |
 | 2026-09-04 | ~~`body_html` の一括再生成 mix タスクを用意する~~ → **撤回** | 相談なく `DATA-MODEL.md` に書いていた提案で、機能スコープ外だった。事象（キャッシュの陳腐化）の記録に留め、実際に必要になるまで作らない |
 | 2026-09-04 | 独自 namespace（`lib/antpress_batch` 等）は切らない | `_web` は Phoenix 1.2 以前に別 OTP アプリだった名残。独立の基準は「独自の依存を持つ大きな塊か」。バッチはドメインロジック、CLI は `lib/mix/tasks/` |
 | 2026-09-04 | 画面固有の JS は Phoenix 1.8 の **colocated hooks** で LiveView の隣に書く | `assets/js/` に別ファイルを作らずに済む。`assets/` はビルドツールのエントリポイント専用になる |
