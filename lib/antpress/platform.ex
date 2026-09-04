@@ -409,6 +409,10 @@ defmodule AntPress.Platform do
            %Client{}
            |> Client.changeset(attrs, scope)
            |> Repo.insert() do
+      # 空の状態からカテゴリを作らせないため、業種横断のプリセットを投入する
+      # （→ docs/DECISIONS.md 3.2）
+      {:ok, _count} = AntPress.Blog.seed_categories(client)
+
       broadcast_client(scope, {:created, client})
       {:ok, client}
     end

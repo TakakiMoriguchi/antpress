@@ -7,11 +7,16 @@
 # General application configuration
 import Config
 
-# phx.gen.auth を 2 系統（developer / user）実行しているため scope も 2 つある。
-# default: true の developer が phx.gen.live の既定スコープになる。
+# phx.gen.auth を 2 系統（developer / user）実行しているため scope が 2 つある。
+#
+# ⚠️ 既定スコープ（default: true）は **client** にしている。
+#    antpress のリソースは大半がクライアント配下（記事・カテゴリ・画像・
+#    問い合わせ）で client_id でスコープするため。
+#    developer_id でスコープするのは clients と api_keys だけなので、
+#    そちらを生成するときは --no-scope で生成して手で書く。
 config :antpress, :scopes,
   developer: [
-    default: true,
+    default: false,
     module: AntPress.Platform.Scope,
     assign_key: :current_developer,
     access_path: [:developer, :id],
@@ -21,14 +26,17 @@ config :antpress, :scopes,
     test_data_fixture: AntPress.PlatformFixtures,
     test_setup_helper: :register_and_log_in_developer
   ],
-  user: [
-    default: false,
+  # クライアント配下のリソース用。AntPress.Accounts.Scope は client を
+  # 必ず持つので（→ lib/antpress/accounts/scope.ex）、client.id で
+  # スコープできる。
+  client: [
+    default: true,
     module: AntPress.Accounts.Scope,
     assign_key: :current_user,
-    access_path: [:user, :id],
-    schema_key: :user_id,
+    access_path: [:client, :id],
+    schema_key: :client_id,
     schema_type: :binary_id,
-    schema_table: :users,
+    schema_table: :clients,
     test_data_fixture: AntPress.AccountsFixtures,
     test_setup_helper: :register_and_log_in_user
   ]

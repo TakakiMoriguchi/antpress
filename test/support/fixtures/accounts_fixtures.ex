@@ -57,6 +57,21 @@ defmodule AntPress.AccountsFixtures do
     AntPress.PlatformFixtures.client_fixture(scope)
   end
 
+  @doc """
+  クライアント配下のリソース用のスコープ。
+
+  config の `:scopes` で既定スコープを `client`（`access_path: [:client, :id]`）に
+  しているため、`phx.gen.live` が生成するテストはこの名前を期待する。
+  """
+  def client_scope_fixture do
+    user_scope_fixture()
+  end
+
+  def client_scope_fixture(%AntPress.Platform.Client{} = client) do
+    user = user_fixture(client: client)
+    AntPress.Accounts.Scope.for_user(user)
+  end
+
   def user_scope_fixture do
     user = user_fixture()
     user_scope_fixture(user)

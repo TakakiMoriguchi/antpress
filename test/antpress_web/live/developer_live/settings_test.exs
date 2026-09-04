@@ -118,5 +118,4 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
       assert result =~ "does not match password"
     end
   end
-
 end

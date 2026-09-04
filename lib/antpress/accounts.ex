@@ -43,7 +43,10 @@ defmodule AntPress.Accounts do
   def get_user_by_email_and_password(email, password)
       when is_binary(email) and is_binary(password) do
     user = Repo.get_by(User, email: email)
-    if User.valid_password?(user, password), do: user
+
+    # ⚠️ client を preload する。この結果は Scope になるため
+    #    （未 preload だと Scope.for_user/1 が raise する → scope.ex）
+    if User.valid_password?(user, password), do: Repo.preload(user, :client)
   end
 
   @doc """
@@ -229,9 +232,10 @@ defmodule AntPress.Accounts do
   Gets the user with the given magic link token.
   """
   def get_user_by_magic_link_token(token) do
+    # ⚠️ この結果も Scope になり得るため client を preload する（→ scope.ex）
     with {:ok, query} <- UserToken.verify_magic_link_token_query(token),
          {user, _token} <- Repo.one(query) do
-      user
+      Repo.preload(user, :client)
     else
       _ -> nil
     end

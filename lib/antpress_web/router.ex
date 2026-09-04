@@ -82,6 +82,12 @@ defmodule AntPressWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{AntPressWeb.UserAuth, :require_authenticated}] do
       live "/client/settings", UserLive.Settings, :edit
+
+      # カテゴリ管理（→ docs/SCREENS.md C5）
+      live "/client/categories", CategoryLive.Index, :index
+      live "/client/categories/new", CategoryLive.Form, :new
+      live "/client/categories/:id", CategoryLive.Show, :show
+      live "/client/categories/:id/edit", CategoryLive.Form, :edit
     end
 
     post "/client/update-password", UserSessionController, :update_password
