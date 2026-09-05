@@ -48,7 +48,7 @@ defmodule AntPressWeb.ClientLive.Index do
         row_click={fn {_id, client} -> JS.navigate(~p"/clients/#{client}") end}
       >
         <:col :let={{_id, client}} label="クライアント名">{client.name}</:col>
-        <:col :let={{_id, client}} label="スラッグ">{client.slug}</:col>
+        <:col :let={{_id, client}} label="識別名">{client.slug}</:col>
         <:col :let={{_id, client}} label="プラン">{plan_label(client.plan)}</:col>
         <:col :let={{_id, client}} label="問い合わせ通知先">
           {client.contact_notification_email}

@@ -22,7 +22,7 @@ defmodule AntPressWeb.ClientLive.Show do
 
       <.list>
         <:item title="クライアント名">{@client.name}</:item>
-        <:item title="スラッグ">{@client.slug}</:item>
+        <:item title="識別名">{@client.slug}</:item>
         <:item title="プラン">{plan_label(@client.plan)}</:item>
         <:item title="問い合わせ通知先">{@client.contact_notification_email || "未設定"}</:item>
         <:item title="Webhook URL">{@client.webhook_url || "未設定"}</:item>

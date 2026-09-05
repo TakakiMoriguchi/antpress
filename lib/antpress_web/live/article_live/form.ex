@@ -19,9 +19,23 @@ defmodule AntPressWeb.ArticleLive.Form do
 
   ## 522KB のエディタを全ページに読ませない
 
-  Toast UI は `app.js` にバンドルせず `priv/static/vendor/` から
-  `<script>` で読む。**この画面だけが読む**
-  （→ `docs/VENDORED-ASSETS.md`）。
+  Toast UI は `app.js` にバンドルせず `priv/static/vendor/` から読む。
+  **この画面だけが読む**（→ `docs/VENDORED-ASSETS.md`）。
+
+  ## ⚠️ `<script>` タグをテンプレートに書いてはいけない
+
+  LiveView のテンプレートに `<script src=...>` を置くと、**live navigation
+  で到達したときに実行されない。** LiveView は morphdom で DOM にパッチを
+  当てるが、そうして挿入された `<script>` はブラウザが実行しないため
+  （`innerHTML` で入れたスクリプトが動かないのと同じ）。
+
+  URL を直接開いたときだけ動き、一覧から「記事を書く」を押すと
+  `window.toastui` が未定義になる、という分かりにくい壊れ方をする
+  （実際にそうなった）。
+
+  そのため**フックが `mounted()` で動的に読み込む。** 読み込み先は
+  `data-editor-*` 属性でサーバーから渡す（`~p` を通すのでパスの検証と
+  キャッシュバスティングが効く）。
   """
   use AntPressWeb, :live_view
 
@@ -32,30 +46,24 @@ defmodule AntPressWeb.ArticleLive.Form do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
-      <%!-- このページだけで読む。app.js には入れない（522KB） --%>
-      <link
-        phx-track-static
-        rel="stylesheet"
-        href={~p"/vendor/toastui-editor/toastui-editor.min.css"}
-      />
-      <link
-        phx-track-static
-        rel="stylesheet"
-        href={~p"/vendor/toastui-editor/toastui-editor-dark.min.css"}
-      />
-      <script phx-track-static src={~p"/vendor/toastui-editor/toastui-editor-all.min.js"}>
-      </script>
-      <script phx-track-static src={~p"/vendor/toastui-editor/i18n-ja-jp.min.js"}>
-      </script>
-
       <.header>
         {@page_title}
-        <:subtitle>スラッグは記事 URL に使われます。公開日時を未来にすると予約投稿になります。</:subtitle>
+        <:subtitle>公開日時を未来にすると、その日時まで公開されません（予約投稿）。</:subtitle>
       </.header>
 
       <.form for={@form} id="article-form" phx-change="validate" phx-submit="save">
         <.input field={@form[:title]} type="text" label="タイトル" />
-        <.input field={@form[:slug]} type="text" label="スラッグ" placeholder="new-menu-2026" />
+        <.input
+          field={@form[:slug]}
+          type="text"
+          label="記事のアドレス"
+          placeholder="new-menu-2026"
+        />
+        <p class="mt-1 text-sm text-base-content/60">
+          サイトでこの記事を開くときのアドレスの、いちばん後ろの部分です。<br />
+          例：<code class="text-xs">https://あなたのサイト/blog/<strong>new-menu-2026</strong></code><br />
+          半角の英字（小文字）・数字・ハイフンが使えます。日本語や記号は使えません。
+        </p>
 
         <div class="mt-4">
           <label class="label" for="article-editor-root">本文</label>
@@ -66,6 +74,10 @@ defmodule AntPressWeb.ArticleLive.Form do
             phx-update="ignore"
             data-mode={editor_mode(@editor_format)}
             data-upload-path={~p"/client/editor/images"}
+            data-editor-js={~p"/vendor/toastui-editor/toastui-editor-all.min.js"}
+            data-editor-i18n={~p"/vendor/toastui-editor/i18n-ja-jp.min.js"}
+            data-editor-css={~p"/vendor/toastui-editor/toastui-editor.min.css"}
+            data-editor-dark-css={~p"/vendor/toastui-editor/toastui-editor-dark.min.css"}
           >
             <%!-- 本文の初期値はこの hidden input が単一の出所。
                   フック側が読んでエディタに流し込み、編集中は書き戻す --%>
@@ -177,21 +189,74 @@ defmodule AntPressWeb.ArticleLive.Form do
       </dialog>
 
       <script :type={Phoenix.LiveView.ColocatedHook} name=".ToastEditor">
-        export default {
-          mounted() {
-            const Editor = window.toastui && window.toastui.Editor
-            if (!Editor) {
-              this.el.querySelector("#article-editor-root").textContent =
-                "エディタの読み込みに失敗しました。ページを再読み込みしてください。"
+        // ⚠️ script タグをテンプレートに置くと live navigation で実行されない。
+        // ここで動的に読み込む（モジュールスコープなので 1 ページにつき 1 回）
+        let loading = null
+
+        const loadCss = href => {
+          if (document.querySelector(`link[data-antpress-css="${href}"]`)) return
+          const link = document.createElement("link")
+          link.rel = "stylesheet"
+          link.href = href
+          link.dataset.antpressCss = href
+          document.head.appendChild(link)
+        }
+
+        const loadScript = src =>
+          new Promise((resolve, reject) => {
+            const found = document.querySelector(`script[data-antpress-js="${src}"]`)
+            if (found) {
+              if (found.dataset.loaded === "true") return resolve()
+              found.addEventListener("load", () => resolve())
+              found.addEventListener("error", () => reject(new Error(src)))
               return
             }
 
+            const el = document.createElement("script")
+            el.src = src
+            el.async = false
+            el.dataset.antpressJs = src
+            el.addEventListener("load", () => {
+              el.dataset.loaded = "true"
+              resolve()
+            })
+            el.addEventListener("error", () => reject(new Error(src)))
+            document.head.appendChild(el)
+          })
+
+        const loadEditor = data => {
+          if (!loading) {
+            loadCss(data.editorCss)
+            loadCss(data.editorDarkCss)
+            // i18n は Editor 本体に依存するので順番を守る
+            loading = loadScript(data.editorJs).then(() => loadScript(data.editorI18n))
+          }
+          return loading
+        }
+
+        export default {
+          async mounted() {
             this.bodyInput = this.el.querySelector('input[name="article[body]"]')
             this.formatInput = this.el.querySelector('input[name="article[body_format]"]')
             const uploadPath = this.el.dataset.uploadPath
             const csrfToken = document
               .querySelector("meta[name='csrf-token']")
               .getAttribute("content")
+
+            let Editor
+            try {
+              await loadEditor(this.el.dataset)
+              Editor = window.toastui && window.toastui.Editor
+              if (!Editor) throw new Error("window.toastui.Editor が未定義")
+            } catch (error) {
+              console.error("Toast UI Editor の読み込みに失敗しました", error)
+              this.el.querySelector("#article-editor-root").textContent =
+                "エディタの読み込みに失敗しました。ページを再読み込みしてください。"
+              return
+            }
+
+            // 読み込み中に別画面へ移動していたら組み立てない
+            if (this.unmounted) return
 
             this.editor = new Editor({
               el: this.el.querySelector("#article-editor-root"),
@@ -263,6 +328,7 @@ defmodule AntPressWeb.ArticleLive.Form do
           },
 
           destroyed() {
+            this.unmounted = true
             if (this.editor) this.editor.destroy()
           },
         }
@@ -402,12 +468,13 @@ defmodule AntPressWeb.ArticleLive.Form do
   defp assign_editor_state(socket, %Article{} = article) do
     socket
     |> assign(:editor_body, article.body || "")
-    |> assign(:editor_format, to_string(article.body_format || :markdown))
+    |> assign(:editor_format, to_string(article.body_format || :rich_text))
   end
 
-  # body_format と Toast UI の initialEditType の対応（→ Article の説明）
-  defp editor_mode("rich_text"), do: "wysiwyg"
-  defp editor_mode(_markdown), do: "markdown"
+  # body_format と Toast UI の initialEditType の対応（→ Article の説明）。
+  # 既定は WYSIWYG（Markdown は玄人向け）
+  defp editor_mode("markdown"), do: "markdown"
+  defp editor_mode(_rich_text), do: "wysiwyg"
 
   defp category_options(scope) do
     Enum.map(Blog.list_blog_categories(scope), &{&1.name, &1.id})

@@ -683,7 +683,7 @@ defmodule AntPress.PlatformTest do
       assert client.plan == :ai
     end
 
-    test "スラッグは英小文字・数字・ハイフンのみ" do
+    test "識別名は英小文字・数字・ハイフンのみ" do
       scope = developer_scope_fixture()
 
       for bad <- ["Upper", "with space", "-leading", "trailing-", "under_score", "日本語"] do
@@ -708,7 +708,7 @@ defmodule AntPress.PlatformTest do
       assert "https:// で始まる URL を指定してください" in errors_on(changeset).webhook_url
     end
 
-    test "スラッグはグローバル一意（別 developer 間でも重複不可）" do
+    test "識別名はグローバル一意（別 developer 間でも重複不可）" do
       scope = developer_scope_fixture()
       other_scope = developer_scope_fixture()
 
@@ -717,7 +717,7 @@ defmodule AntPress.PlatformTest do
       assert {:error, changeset} =
                Platform.create_client(other_scope, %{name: "b", slug: "dup", plan: :basic})
 
-      assert "has already been taken" in errors_on(changeset).slug
+      assert "この識別名は既に使われています" in errors_on(changeset).slug
     end
 
     test "change_client/2 returns a client changeset" do

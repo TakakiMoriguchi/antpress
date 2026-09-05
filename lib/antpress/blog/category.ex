@@ -43,17 +43,18 @@ defmodule AntPress.Blog.Category do
     |> validate_slug()
     |> unique_constraint([:client_id, :slug],
       name: :blog_categories_client_id_slug_index,
-      message: "このスラッグは既に使われています"
+      message: "このアドレスは既に使われています"
     )
     |> put_client_id(client_scope)
   end
 
-  # 記事 URL に使うので英小文字・数字・ハイフンのみ
+  # 記事 URL に使うので英小文字・数字・ハイフンのみ。
+  # ⚠️ 画面では「スラッグ」と呼ばない（→ blog/article.ex に同じ注記）
   defp validate_slug(changeset) do
     changeset
     |> validate_length(:slug, min: 1, max: 60)
     |> validate_format(:slug, ~r/^[a-z0-9]+(-[a-z0-9]+)*$/,
-      message: "英小文字・数字・ハイフンのみ使えます（先頭と末尾はハイフン不可）"
+      message: "半角の英字（小文字）・数字・ハイフンだけが使えます（先頭と末尾にハイフンは使えません）"
     )
   end
 

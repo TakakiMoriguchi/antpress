@@ -29,7 +29,8 @@ defmodule AntPress.Blog.ArticleTest do
 
       assert article.client_id == scope.client.id
       assert article.status == :draft
-      assert article.body_format == :markdown
+      # 既定は WYSIWYG（Markdown は玄人向け）
+      assert article.body_format == :rich_text
       assert article.generation_status == :idle
     end
 
@@ -70,29 +71,29 @@ defmodule AntPress.Blog.ArticleTest do
       assert article.body_html == nil
     end
 
-    test "タイトルとスラッグは必須", %{scope: scope} do
+    test "タイトルとアドレスは必須", %{scope: scope} do
       assert {:error, changeset} = Blog.create_article(scope, %{})
 
       assert "can't be blank" in errors_on(changeset).title
       assert "can't be blank" in errors_on(changeset).slug
     end
 
-    test "スラッグの形式を検証する", %{scope: scope} do
+    test "アドレスの形式を検証する", %{scope: scope} do
       assert {:error, changeset} = Blog.create_article(scope, %{title: "題", slug: "日本語"})
 
       assert errors_on(changeset).slug != []
     end
 
-    test "スラッグはクライアント単位で一意", %{scope: scope} do
+    test "アドレスはクライアント単位で一意", %{scope: scope} do
       article_fixture(scope, %{slug: "duplicated"})
 
       assert {:error, changeset} =
                Blog.create_article(scope, %{title: "別記事", slug: "duplicated"})
 
-      assert "このスラッグは既に使われています" in errors_on(changeset).client_id
+      assert "このアドレスは既に使われています" in errors_on(changeset).client_id
     end
 
-    test "別クライアントなら同じスラッグを使える", %{scope: scope} do
+    test "別クライアントなら同じアドレスを使える", %{scope: scope} do
       article_fixture(scope, %{slug: "news"})
       other_scope = Scope.for_user(user_fixture())
 

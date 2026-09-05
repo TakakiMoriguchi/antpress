@@ -55,6 +55,7 @@ admin（運営者）
 | [`docs/SCREENS.md`](docs/SCREENS.md) | 24 画面、URL 空間、権限、ワイヤーフレーム |
 | [`docs/API-GUIDE.md`](docs/API-GUIDE.md) | 配信 API の実装ガイド（HP 構築時に読む） |
 | [`docs/TECH-NOTES.md`](docs/TECH-NOTES.md) | 判断材料の記録（なぜその選定になったか） |
+| [`docs/VENDORED-ASSETS.md`](docs/VENDORED-ASSETS.md) | 同梱している外部アセットの出所・更新手順 |
 
 ## 開発
 
@@ -78,11 +79,43 @@ mix phx.server          # http://localhost:4001
 
 本番は Supabase（東京リージョン）＋ Fly.io。`.env.example` をコピーして値を埋める。
 
+### 開発用アカウント
+
+**ローカルの開発 DB 専用。** 本番には存在しないし、作らないこと。
+
+| | URL | メールアドレス | パスワード |
+| --- | --- | --- | --- |
+| developer / admin | http://localhost:4001/developers/log-in | `takaki@antpress.local` | `antpress-dev-2026` |
+| client（オーナー） | http://localhost:4001/client/log-in | `owner@ramen-taro.local` | `antpress-dev-2026` |
+
+パスワードを使わずマジックリンクでも入れる。ログイン画面で「メールでログイン」を
+押し、http://localhost:4001/dev/mailbox でメールを開いてリンクをクリックする。
+
+最初の admin を作り直す場合:
+
+```sh
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
+```
+
 ## 状態
 
-Phoenix プロジェクトの初期化まで完了。機能実装は未着手。
-
 実装順序は [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) の 6 章を参照。
+
+| # | 内容 | 状態 |
+| --- | --- | --- |
+| 1 | `developers` ＋ ログイン | 完了 |
+| 2 | `clients` ＋ クライアント管理 | 完了 |
+| 2b | `users` ＋ クライアントログイン | 完了 |
+| 3 | `blog_categories` ＋ プリセット投入 | 完了 |
+| 4 | `images` ＋ Supabase Storage 連携 | 完了 |
+| 5 | `blog_articles`（基本プラン / Toast UI Editor） | 完了 |
+| 6 | `api_keys` ＋ 配信 API ＋ OpenAPI | 未着手 |
+| 7 | Webhook | 未着手 |
+| 8 | お問い合わせ ＋ Resend | 未着手 |
+| 9 | AI プラン | 未着手 |
+
+未実装の画面: 招待フロー（developer 発行 / オーナー・スタッフ発行）、
+developer の Anthropic API キー設定。
 
 ## AI エージェント向け
 

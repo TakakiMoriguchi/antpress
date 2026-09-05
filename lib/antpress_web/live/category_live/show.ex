@@ -25,7 +25,7 @@ defmodule AntPressWeb.CategoryLive.Show do
 
       <.list>
         <:item title="カテゴリ名">{@category.name}</:item>
-        <:item title="スラッグ">{@category.slug}</:item>
+        <:item title="アドレス">{@category.slug}</:item>
         <:item title="表示順">{@category.position}</:item>
       </.list>
     </Layouts.app>

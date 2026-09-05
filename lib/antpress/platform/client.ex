@@ -51,7 +51,7 @@ defmodule AntPress.Platform.Client do
     |> validate_email(:contact_notification_email)
     |> validate_webhook_url()
     |> validate_ai_plan_requires_anthropic_key(developer_scope)
-    |> unique_constraint(:slug)
+    |> unique_constraint(:slug, message: "この識別名は既に使われています")
     |> check_constraint(:plan, name: :clients_plan_valid)
     |> check_constraint(:status, name: :clients_status_valid)
     |> put_developer_id(developer_scope)
@@ -72,12 +72,14 @@ defmodule AntPress.Platform.Client do
     end
   end
 
-  # スラッグは URL や識別子に使うので英小文字・数字・ハイフンのみ
+  # 管理用の識別子。英小文字・数字・ハイフンのみ。
+  # ⚠️ 画面では「識別名」と表示する。記事・カテゴリの slug と違い
+  #    **URL には使わない**ので、そちらとは呼び方を分けている
   defp validate_slug(changeset) do
     changeset
     |> validate_length(:slug, min: 2, max: 63)
     |> validate_format(:slug, ~r/^[a-z0-9]+(-[a-z0-9]+)*$/,
-      message: "英小文字・数字・ハイフンのみ使えます（先頭と末尾はハイフン不可）"
+      message: "半角の英字（小文字）・数字・ハイフンだけが使えます（先頭と末尾にハイフンは使えません）"
     )
   end
 

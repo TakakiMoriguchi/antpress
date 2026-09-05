@@ -13,7 +13,9 @@ defmodule AntPress.Repo.Migrations.CreateBlogArticles do
       # ⚠️ body は **常に Markdown**。body_format はエディタをどちらの
       #    モードで開くかの記録（Toast UI Editor は WYSIWYG でも
       #    Markdown を保持する → lib/antpress/blog/article.ex）
-      add :body_format, :string, null: false, default: "markdown"
+      # 既定は WYSIWYG。Markdown は玄人向けで、想定ユーザー（店舗オーナー）は
+      # 記法を知らない。切り替えはエディタ側のタブでいつでもできる
+      add :body_format, :string, null: false, default: "rich_text"
       add :body, :text
       # 配信用にレンダリング済みの HTML。**キャッシュなので陳腐化する**
       add :body_html, :text

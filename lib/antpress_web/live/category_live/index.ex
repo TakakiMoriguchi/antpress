@@ -22,7 +22,7 @@ defmodule AntPressWeb.CategoryLive.Index do
         row_click={fn {_id, category} -> JS.navigate(~p"/client/categories/#{category}") end}
       >
         <:col :let={{_id, category}} label="カテゴリ名">{category.name}</:col>
-        <:col :let={{_id, category}} label="スラッグ">{category.slug}</:col>
+        <:col :let={{_id, category}} label="アドレス">{category.slug}</:col>
         <:col :let={{_id, category}} label="表示順">{category.position}</:col>
         <:action :let={{_id, category}}>
           <div class="sr-only">

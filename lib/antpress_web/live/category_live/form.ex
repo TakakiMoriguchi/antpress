@@ -10,7 +10,7 @@ defmodule AntPressWeb.CategoryLive.Form do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <.header>
         {@page_title}
-        <:subtitle>記事の分類に使います。スラッグは記事 URL に含まれます。</:subtitle>
+        <:subtitle>記事を分類するための名前です。</:subtitle>
       </.header>
 
       <.form for={@form} id="category-form" phx-change="validate" phx-submit="save">
@@ -18,10 +18,18 @@ defmodule AntPressWeb.CategoryLive.Form do
         <.input
           field={@form[:slug]}
           type="text"
-          label="スラッグ"
+          label="カテゴリのアドレス"
           placeholder="news"
         />
+        <p class="mt-1 text-sm text-base-content/60">
+          サイトでこのカテゴリの記事一覧を開くときのアドレスに使います。<br />
+          例：<code class="text-xs">https://あなたのサイト/blog/category/<strong>news</strong></code><br />
+          半角の英字（小文字）・数字・ハイフンが使えます。日本語や記号は使えません。
+        </p>
         <.input field={@form[:position]} type="number" label="表示順" />
+        <p class="mt-1 text-sm text-base-content/60">
+          小さい数字ほど先に表示されます。
+        </p>
         <footer>
           <.button phx-disable-with="保存中..." variant="primary">保存</.button>
           <.button navigate={return_path(@current_user, @return_to, @category)}>キャンセル</.button>

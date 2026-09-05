@@ -11,8 +11,8 @@ defmodule AntPress.Blog.Article do
 
   | `body_format` | Toast UI の `initialEditType` |
   | --- | --- |
+  | `:rich_text`（**既定**） | `"wysiwyg"` |
   | `:markdown` | `"markdown"` |
-  | `:rich_text` | `"wysiwyg"` |
 
   こうすると**モードを切り替えても本文が変換で劣化しない。**
   リッチテキスト側を HTML で保存すると、切り替えのたびに情報が落ちる。
@@ -51,7 +51,9 @@ defmodule AntPress.Blog.Article do
     # 記事 URL に使う。一意性はクライアント単位
     field :slug, :string
 
-    field :body_format, Ecto.Enum, values: [:rich_text, :markdown], default: :markdown
+    # 既定は `:rich_text`（WYSIWYG）。Markdown は玄人向けで、
+    # 想定ユーザー（店舗オーナー）は記法を知らない
+    field :body_format, Ecto.Enum, values: [:rich_text, :markdown], default: :rich_text
 
     # 入力された Markdown
     field :body, :string
@@ -104,7 +106,7 @@ defmodule AntPress.Blog.Article do
     |> put_published_at()
     |> unique_constraint([:client_id, :slug],
       name: :blog_articles_client_id_slug_index,
-      message: "このスラッグは既に使われています"
+      message: "このアドレスは既に使われています"
     )
     |> foreign_key_constraint(:category_id)
     |> foreign_key_constraint(:thumbnail_image_id)
@@ -115,12 +117,14 @@ defmodule AntPress.Blog.Article do
     |> put_client_id(client_scope)
   end
 
-  # 記事 URL に使うので英小文字・数字・ハイフンのみ
+  # 記事 URL に使うので英小文字・数字・ハイフンのみ。
+  # ⚠️ 画面では「スラッグ」と呼ばない。想定ユーザー（店舗オーナー）に
+  #    通じない WordPress 用語なので「記事のアドレス」と表示する
   defp validate_slug(changeset) do
     changeset
     |> validate_length(:slug, min: 1, max: 80)
     |> validate_format(:slug, ~r/^[a-z0-9]+(-[a-z0-9]+)*$/,
-      message: "英小文字・数字・ハイフンのみ使えます（先頭と末尾はハイフン不可）"
+      message: "半角の英字（小文字）・数字・ハイフンだけが使えます（先頭と末尾にハイフンは使えません）"
     )
   end
 

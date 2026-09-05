@@ -18,9 +18,12 @@ defmodule AntPressWeb.ClientLive.Form do
         <.input
           field={@form[:slug]}
           type="text"
-          label="スラッグ"
+          label="識別名"
           placeholder="ramen-taro"
         />
+        <p class="mt-1 text-sm text-base-content/60">
+          管理用の名前です。クライアントごとに重複しない値を付けます。<br /> 半角の英字（小文字）・数字・ハイフンが使えます。
+        </p>
         <.input
           field={@form[:plan]}
           type="select"

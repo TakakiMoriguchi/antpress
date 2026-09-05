@@ -142,7 +142,9 @@ defmodule AntPressWeb.ArticleLiveTest do
 
       assert html =~ "記事を書く"
       assert html =~ "タイトル"
-      assert html =~ "スラッグ"
+      # ⚠️「スラッグ」は WordPress 用語で店舗オーナーに通じない
+      assert html =~ "記事のアドレス"
+      refute html =~ "スラッグ"
       assert html =~ "サムネイル"
     end
 
@@ -166,13 +168,25 @@ defmodule AntPressWeb.ArticleLiveTest do
       assert editor_block =~ ~s(name="article[body_format]")
     end
 
-    test "Toast UI Editor をこのページだけで読み込む", %{conn: conn} do
+    test "Toast UI Editor の読み込み先を data 属性で渡す", %{conn: conn} do
       # 522KB を app.js に入れて全ページに負わせない
       {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
 
       assert html =~ "/vendor/toastui-editor/toastui-editor-all.min.js"
       assert html =~ "/vendor/toastui-editor/toastui-editor.min.css"
       assert html =~ "/vendor/toastui-editor/i18n-ja-jp.min.js"
+    end
+
+    test "⚠️ script タグをテンプレートに置かない", %{conn: conn} do
+      # LiveView のテンプレートに置いた script は live navigation で
+      # 実行されない（morphdom で挿入されたスクリプトはブラウザが動かさない）。
+      # 一覧から「記事を書く」を押したときだけ壊れる、という形で実際に出た
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
+
+      refute html =~ "<script src="
+      refute html =~ "<script phx-track-static"
+      # フックが data 属性を読んで動的に読み込む
+      assert html =~ "data-editor-js="
     end
 
     test "記事を作成すると編集画面へ遷移する", %{conn: conn, scope: scope} do
@@ -207,7 +221,7 @@ defmodule AntPressWeb.ArticleLiveTest do
         |> render_submit()
 
       assert html =~ "can&#39;t be blank" or html =~ "can't be blank"
-      assert html =~ "英小文字・数字・ハイフンのみ"
+      assert html =~ "半角の英字（小文字）・数字・ハイフンだけが使えます"
     end
 
     test "既存記事を編集画面に読み込む", %{conn: conn, scope: scope} do
