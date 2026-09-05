@@ -101,11 +101,45 @@ defmodule AntPressWeb.ClientLiveTest do
       assert html =~ "ラーメン太郎 本店"
     end
 
-    test "deletes client in listing", %{conn: conn, client: client} do
-      {:ok, index_live, _html} = live(conn, ~p"/clients")
+    test "⚠️ 削除リンクを出さない", %{conn: conn, client: client} do
+      # 削除は提供しない（→ docs/DECISIONS.md 3.8）
+      {:ok, _index_live, html} = live(conn, ~p"/clients")
 
-      assert index_live |> element("#clients-#{client.id} a", "削除") |> render_click()
-      refute has_element?(index_live, "#clients-#{client.id}")
+      assert html =~ client.name
+      refute html =~ ">削除<"
+    end
+
+    test "稼働中 / 停止中で絞り込める", %{conn: conn, scope: scope, client: client} do
+      {:ok, suspended} =
+        AntPress.Platform.create_client(scope, %{
+          name: "停止した店",
+          slug: "suspended-shop",
+          plan: :basic
+        })
+
+      {:ok, _} = AntPress.Platform.update_client(scope, suspended, %{status: :suspended})
+
+      {:ok, lv, _html} = live(conn, ~p"/clients")
+
+      html = lv |> element(~s(a[href="/clients?filter=active"])) |> render_click()
+      assert html =~ client.name
+      refute html =~ "停止した店"
+
+      html = lv |> element(~s(a[href="/clients?filter=suspended"])) |> render_click()
+      assert html =~ "停止した店"
+      refute html =~ client.name
+    end
+
+    test "該当がなければ案内を出す", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/clients?filter=suspended")
+
+      assert html =~ "停止中のクライアントはありません"
+    end
+
+    test "⚠️ 不正なフィルタ値でも落ちない", %{conn: conn, client: client} do
+      {:ok, _lv, html} = live(conn, ~p"/clients?filter=../../etc/passwd")
+
+      assert html =~ client.name
     end
   end
 

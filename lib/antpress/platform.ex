@@ -354,21 +354,54 @@ defmodule AntPress.Platform do
   end
 
   @doc """
-  Returns the list of clients.
+  クライアント一覧。
 
-  ## Examples
+  ⚠️ **2 段テナントスコープの起点。** developer は自分のクライアントだけ、
+  admin は全件（→ `docs/DATA-MODEL.md` 1.1）。
 
-      iex> list_clients(scope)
-      [%Client{}, ...]
+  ## 絞り込み
 
+      list_clients(scope)                      # すべて
+      list_clients(scope, filter: :active)     # 稼働中
+      list_clients(scope, filter: :suspended)  # 停止中
+
+  **削除は提供しないので、停止中のクライアントは一覧に残り続ける。**
+  契約が終わったものが混ざるため、絞り込みが要る。
+
+  名前順に並べる。順序を指定しないと**描画のたびに並びが変わりうる。**
   """
-  def list_clients(%Scope{developer: %Developer{role: :admin}}) do
-    Repo.all(Client)
+  def list_clients(%Scope{} = scope, opts \\ []) do
+    Client
+    |> scope_clients(scope)
+    |> filter_clients(Keyword.get(opts, :filter, :all))
+    |> order_by(asc: :name)
+    |> Repo.all()
   end
 
-  def list_clients(%Scope{} = scope) do
-    Repo.all_by(Client, developer_id: scope.developer.id)
+  @doc """
+  絞り込みごとの件数。一覧のタブに出す。
+  """
+  def count_clients_by_filter(%Scope{} = scope) do
+    Map.new([:all, :active, :suspended], fn filter ->
+      count =
+        Client
+        |> scope_clients(scope)
+        |> filter_clients(filter)
+        |> Repo.aggregate(:count)
+
+      {filter, count}
+    end)
   end
+
+  # ⚠️ admin だけがスコープを越えられる
+  defp scope_clients(query, %Scope{developer: %Developer{role: :admin}}), do: query
+
+  defp scope_clients(query, %Scope{} = scope),
+    do: where(query, developer_id: ^scope.developer.id)
+
+  defp filter_clients(query, :active), do: where(query, status: :active)
+  defp filter_clients(query, :suspended), do: where(query, status: :suspended)
+  defp filter_clients(query, _all), do: query
 
   @doc """
   Gets a single client.
@@ -442,27 +475,16 @@ defmodule AntPress.Platform do
     end
   end
 
-  @doc """
-  Deletes a client.
-
-  ## Examples
-
-      iex> delete_client(scope, client)
-      {:ok, %Client{}}
-
-      iex> delete_client(scope, client)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_client(%Scope{} = scope, %Client{} = client) do
-    :ok = authorize_client!(scope, client)
-
-    with {:ok, client = %Client{}} <-
-           Repo.delete(client) do
-      broadcast_client(scope, {:deleted, client})
-      {:ok, client}
-    end
-  end
+  # ⚠️ クライアントの削除は**提供しない**（→ docs/DECISIONS.md 3.8）。
+  #
+  # `blog_articles` / `blog_categories` / `images` / `users` はすべて
+  # `on_delete: :delete_all` で clients を参照している。1 回の操作で
+  # **記事・画像・アカウント・問い合わせが全部消える**。取り消せない。
+  #
+  # 契約終了は `status = :suspended` で表す。管理画面と配信 API の
+  # 両方が止まり、データは残る（→ docs/DATA-MODEL.md 3.3）。
+  #
+  # `delete_client/2` を復活させないこと。
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking client changes.

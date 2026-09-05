@@ -1,7 +1,16 @@
 defmodule AntPressWeb.ClientLive.Index do
+  @moduledoc """
+  クライアント一覧（→ `docs/SCREENS.md` D3）。
+
+  **削除は提供しない。** 契約終了は `status = :suspended` で表す
+  （→ `docs/DECISIONS.md` 3.8）。停止したものが一覧に残り続けるので、
+  稼働中 / 停止中で絞り込めるようにしている。
+  """
   use AntPressWeb, :live_view
 
   alias AntPress.Platform
+
+  @filters [all: "すべて", active: "稼働中", suspended: "停止中"]
 
   @impl true
   def render(assigns) do
@@ -16,7 +25,24 @@ defmodule AntPressWeb.ClientLive.Index do
         </:actions>
       </.header>
 
+      <div role="tablist" class="tabs tabs-box w-fit">
+        <.link
+          :for={{key, label} <- @filter_labels}
+          role="tab"
+          patch={~p"/clients?#{filter_params(key)}"}
+          class={["tab", @filter == key && "tab-active"]}
+        >
+          {label}
+          <span class="ml-1 text-xs opacity-60">{@counts[key]}</span>
+        </.link>
+      </div>
+
+      <p :if={@counts[@filter] == 0} class="mt-10 text-center text-base-content/60">
+        {empty_message(@filter)}
+      </p>
+
       <.table
+        :if={@counts[@filter] > 0}
         id="clients"
         rows={@streams.clients}
         row_click={fn {_id, client} -> JS.navigate(~p"/clients/#{client}") end}
@@ -35,14 +61,6 @@ defmodule AntPressWeb.ClientLive.Index do
           </div>
           <.link navigate={~p"/clients/#{client}/edit"}>編集</.link>
         </:action>
-        <:action :let={{id, client}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: client.id}) |> hide("##{id}")}
-            data-confirm="このクライアントを削除します。記事・画像・問い合わせもすべて失われます。よろしいですか？"
-          >
-            削除
-          </.link>
-        </:action>
       </.table>
     </Layouts.app>
     """
@@ -57,27 +75,43 @@ defmodule AntPressWeb.ClientLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "クライアント")
-     |> stream(:clients, list_clients(socket.assigns.current_developer))}
+     |> assign(:filter_labels, @filters)
+     |> stream(:clients, [])}
   end
 
   @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    client = Platform.get_client!(socket.assigns.current_developer, id)
-    {:ok, _} = Platform.delete_client(socket.assigns.current_developer, client)
-
-    {:noreply, stream_delete(socket, :clients, client)}
+  def handle_params(params, _uri, socket) do
+    {:noreply,
+     socket
+     |> assign(:filter, parse_filter(params["filter"]))
+     |> load_clients()}
   end
 
   @impl true
   def handle_info({type, %AntPress.Platform.Client{}}, socket)
       when type in [:created, :updated, :deleted] do
-    {:noreply,
-     stream(socket, :clients, list_clients(socket.assigns.current_developer), reset: true)}
+    {:noreply, load_clients(socket)}
   end
 
-  defp list_clients(current_developer) do
-    Platform.list_clients(current_developer)
+  defp load_clients(socket) do
+    scope = socket.assigns.current_developer
+
+    socket
+    |> assign(:counts, Platform.count_clients_by_filter(scope))
+    |> stream(:clients, Platform.list_clients(scope, filter: socket.assigns.filter), reset: true)
   end
+
+  # 不正な値は「すべて」に落とす。URL を手で書き換えられても落ちないように
+  defp parse_filter(value) do
+    Enum.find_value(@filters, :all, fn {key, _} -> if to_string(key) == value, do: key end)
+  end
+
+  defp filter_params(:all), do: []
+  defp filter_params(filter), do: [{"filter", filter}]
+
+  defp empty_message(:active), do: "稼働中のクライアントはありません。"
+  defp empty_message(:suspended), do: "停止中のクライアントはありません。"
+  defp empty_message(_all), do: "まだクライアントがありません。"
 
   # ─── 表示用ヘルパー ─────────────────────────────
   defp plan_label(:basic), do: "基本"

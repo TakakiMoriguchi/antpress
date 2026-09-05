@@ -533,18 +533,20 @@ defmodule AntPress.PlatformTest do
       assert client == Platform.get_client!(scope, client.id)
     end
 
-    test "delete_client/2 deletes the client" do
-      scope = developer_scope_fixture()
-      client = client_fixture(scope)
-      assert {:ok, %Client{}} = Platform.delete_client(scope, client)
-      assert_raise Ecto.NoResultsError, fn -> Platform.get_client!(scope, client.id) end
+    test "⚠️ クライアントの削除は提供しない" do
+      # 記事・画像・アカウント・問い合わせが 1 操作で全部消えるため。
+      # 契約終了は status = :suspended で表す（→ docs/DECISIONS.md 3.8）
+      refute function_exported?(Platform, :delete_client, 2)
     end
 
-    test "delete_client/2 with invalid scope raises" do
+    test "停止は削除の代わりになる（データは残る）" do
       scope = developer_scope_fixture()
-      other_scope = developer_scope_fixture()
       client = client_fixture(scope)
-      assert_raise FunctionClauseError, fn -> Platform.delete_client(other_scope, client) end
+
+      assert {:ok, suspended} = Platform.update_client(scope, client, %{status: :suspended})
+      assert suspended.status == :suspended
+      # 消えていない
+      assert Platform.get_client!(scope, client.id).id == client.id
     end
 
     # ─── ここから antpress 固有の設計要件のテスト ───────────────
@@ -580,7 +582,7 @@ defmodule AntPress.PlatformTest do
       end
     end
 
-    test "admin は他人のクライアントを更新・削除できる" do
+    test "admin は他人のクライアントを更新できる" do
       dev_scope = developer_scope_fixture()
       admin_scope = admin_scope_fixture()
       client = client_fixture(dev_scope)
@@ -590,8 +592,57 @@ defmodule AntPress.PlatformTest do
 
       # developer_id は元の developer のまま（admin に付け替わらない）
       assert updated.developer_id == dev_scope.developer.id
+    end
 
-      assert {:ok, _} = Platform.delete_client(admin_scope, updated)
+    test "稼働中 / 停止中で絞り込める" do
+      scope = developer_scope_fixture()
+      active = client_fixture(scope, %{name: "稼働中の店"})
+      other = client_fixture(scope, %{name: "停止した店"})
+      {:ok, suspended} = Platform.update_client(scope, other, %{status: :suspended})
+
+      assert Enum.map(Platform.list_clients(scope, filter: :active), & &1.id) == [active.id]
+      assert Enum.map(Platform.list_clients(scope, filter: :suspended), & &1.id) == [suspended.id]
+      assert length(Platform.list_clients(scope)) == 2
+    end
+
+    test "件数を絞り込みごとに数える" do
+      scope = developer_scope_fixture()
+      client_fixture(scope)
+      other = client_fixture(scope)
+      {:ok, _} = Platform.update_client(scope, other, %{status: :suspended})
+
+      assert Platform.count_clients_by_filter(scope) == %{all: 2, active: 1, suspended: 1}
+    end
+
+    test "⚠️ 絞り込みでも 2 段スコープが効く" do
+      scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      mine = client_fixture(scope)
+      client_fixture(other_scope)
+
+      assert Enum.map(Platform.list_clients(scope, filter: :active), & &1.id) == [mine.id]
+      assert Platform.count_clients_by_filter(scope).all == 1
+    end
+
+    test "admin は絞り込んでも全件を見られる" do
+      dev_scope = developer_scope_fixture()
+      other_scope = developer_scope_fixture()
+      admin_scope = admin_scope_fixture()
+      client_fixture(dev_scope)
+      client_fixture(other_scope)
+
+      assert length(Platform.list_clients(admin_scope, filter: :active)) == 2
+      assert Platform.count_clients_by_filter(admin_scope).active == 2
+    end
+
+    test "一覧は名前順に並ぶ" do
+      # 順序を指定しないと描画のたびに並びが変わりうる
+      scope = developer_scope_fixture()
+      client_fixture(scope, %{name: "た"})
+      client_fixture(scope, %{name: "あ"})
+      client_fixture(scope, %{name: "さ"})
+
+      assert Enum.map(Platform.list_clients(scope), & &1.name) == ["あ", "さ", "た"]
     end
 
     test "developer_id は attrs から設定できない（他人配下に作れない）" do

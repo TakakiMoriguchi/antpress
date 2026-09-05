@@ -258,6 +258,10 @@ erDiagram
 
 - `status = suspended` のクライアントは、管理画面ログインと配信 API の両方を拒否する
   （契約終了時に**データを消さずに止められる**）
+- ⚠️ **削除は提供しない**（→ `DECISIONS.md` 3.8）。子テーブル 4 つが
+  `on_delete: :delete_all` なので、1 操作で記事・画像・アカウント・
+  問い合わせが全部消える。停止したものは一覧に残るため、
+  一覧は稼働中 / 停止中で絞り込める
 - `developer_id` が **非 NULL** なので「直接契約」の特別扱いが不要（→ `DECISIONS.md` 1.3）
 - `developer_id` は**変更可能**にする。developer が辞めた際にクライアントを
   admin や別の developer へ移管できる（実装コストはほぼゼロ）
