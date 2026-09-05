@@ -309,6 +309,9 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 ### AI 生成
 
 - モデルは **`claude-sonnet-5`**
+- **画像の説明（`images.alt_text`）の自動生成もここで扱う。**
+  基本プランでは店舗オーナーがまず埋めない項目なので、AI プランで
+  埋まるようにして初めて価値が出る（→ `docs/DECISIONS.md` 3.3）
 - API キーは **developer の BYOK**（`developers.anthropic_api_key`）
 - Anthropic キー未登録の developer は、クライアントを AI プランに設定できない
 - 非同期。`blog_articles.generation_status` で状態管理し、LiveView にストリーミング

@@ -26,7 +26,8 @@ defmodule AntPressWeb.ImageLive.Index do
         画像
         <:subtitle>
           記事や各ページで使う画像を管理します。JPEG / PNG / GIF / WebP、1 ファイル {@max_mb}MB まで。<br />
-          「画像の説明」を入れておくと、画像が表示できないときに代わりの文章として出ます。検索にも使われます。
+          「画像の説明」は任意ですが、入れておくと <strong>Google の画像検索</strong>で見つかりやすくなります。
+          画像が表示できないときの代わりの文章にもなります。
         </:subtitle>
       </.header>
 
