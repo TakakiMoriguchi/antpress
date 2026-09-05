@@ -18,8 +18,11 @@ defmodule AntPressWeb do
   """
 
   # `uploads` は開発時のアップロード画像置き場（→ lib/antpress/storage/local.ex）。
-  # `images` は Phoenix の静的アセット用で別物。混ぜないこと
-  def static_paths, do: ~w(assets fonts images uploads favicon.ico robots.txt)
+  # `images` は Phoenix の静的アセット用で別物。混ぜないこと。
+  # `vendor` は同梱した Toast UI Editor（記事フォームだけが読む。
+  # 522KB を app.js に入れて全ページに負わせないため → docs/VENDORED-ASSETS.md）。
+  # ⚠️ ここに入れたファイルは**すべて公開配信される**。メモや README を置かないこと
+  def static_paths, do: ~w(assets fonts images uploads vendor favicon.ico robots.txt)
 
   def router do
     quote do

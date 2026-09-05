@@ -95,7 +95,10 @@ defmodule AntPressWeb.CoreComponents do
       <.button phx-click="go" variant="primary">Send!</.button>
       <.button navigate={~p"/"}>Home</.button>
   """
-  attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
+  # `type` を含めているのは、フォームの中に置く「送信しないボタン」
+  # （モーダルを開く、選択を外す等）に type="button" が必要なため。
+  # 付けないと button の既定が submit なのでフォームが送信されてしまう
+  attr :rest, :global, include: ~w(href navigate patch method download name value disabled type)
   attr :class, :any
   attr :variant, :string, values: ~w(primary)
   slot :inner_block, required: true

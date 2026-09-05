@@ -258,14 +258,16 @@ defmodule AntPressWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the user was already logged in, redirect to settings
+  # ⚠️ この節はログイン処理中には効かない（その時点では current_user が
+  #    まだ assign されていない）。すでにログイン済みのユーザーが
+  #    ログイン画面へ来た場合の行き先。
   def signed_in_path(%Plug.Conn{assigns: %{current_user: %Scope{user: %Accounts.User{}}}}) do
-    ~p"/client/settings"
+    ~p"/client/articles"
   end
 
   # クライアント側の主画面は記事一覧（→ docs/SCREENS.md C3）。
-  # 記事一覧は実装順序 5 で作るため、それまでは設定画面を暫定の行き先にする。
-  def signed_in_path(_), do: ~p"/client/settings"
+  # ダッシュボードは作らない（表示する指標がなく 1 画面増えるだけ）
+  def signed_in_path(_), do: ~p"/client/articles"
 
   @doc """
   Plug for routes that require the user to be authenticated.

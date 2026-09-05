@@ -83,6 +83,11 @@ defmodule AntPressWeb.Router do
       on_mount: [{AntPressWeb.UserAuth, :require_authenticated}] do
       live "/client/settings", UserLive.Settings, :edit
 
+      # 記事（→ docs/SCREENS.md C3 / C4）。ログイン後の着地点
+      live "/client/articles", ArticleLive.Index, :index
+      live "/client/articles/new", ArticleLive.Form, :new
+      live "/client/articles/:id/edit", ArticleLive.Form, :edit
+
       # カテゴリ管理（→ docs/SCREENS.md C5）
       live "/client/categories", CategoryLive.Index, :index
       live "/client/categories/new", CategoryLive.Form, :new
@@ -95,6 +100,11 @@ defmodule AntPressWeb.Router do
     end
 
     post "/client/update-password", UserSessionController, :update_password
+
+    # 記事本文への画像挿入（Toast UI の addImageBlobHook から呼ばれる）。
+    # LiveView ではなくコントローラなのは、ファイルが JS の握る Blob として
+    # 来るため（→ lib/antpress_web/controllers/editor_image_controller.ex）
+    post "/client/editor/images", EditorImageController, :create
   end
 
   scope "/", AntPressWeb do

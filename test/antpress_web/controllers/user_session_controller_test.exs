@@ -18,7 +18,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/client/settings"
+      assert redirected_to(conn) == ~p"/client/articles"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
@@ -28,7 +28,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # ログイン成功はナビの存在で確認する
       assert response =~ "アカウント"
       assert response =~ "ログアウト"
-      assert response =~ ~p"/client/settings"
+      assert response =~ ~p"/client/articles"
       assert response =~ ~p"/client/log-out"
     end
 
@@ -45,7 +45,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert conn.resp_cookies["_ant_press_web_user_remember_me"]
-      assert redirected_to(conn) == ~p"/client/settings"
+      assert redirected_to(conn) == ~p"/client/articles"
     end
 
     test "logs the user in with return to", %{conn: conn, user: user} do
@@ -86,7 +86,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/client/settings"
+      assert redirected_to(conn) == ~p"/client/articles"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
@@ -96,7 +96,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # ログイン成功はナビの存在で確認する
       assert response =~ "アカウント"
       assert response =~ "ログアウト"
-      assert response =~ ~p"/client/settings"
+      assert response =~ ~p"/client/articles"
       assert response =~ ~p"/client/log-out"
     end
 
@@ -111,7 +111,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/client/settings"
+      assert redirected_to(conn) == ~p"/client/articles"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "アカウントを確認しました"
 
       assert Accounts.get_user!(user.id).confirmed_at
@@ -124,7 +124,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       # ログイン成功はナビの存在で確認する
       assert response =~ "アカウント"
       assert response =~ "ログアウト"
-      assert response =~ ~p"/client/settings"
+      assert response =~ ~p"/client/articles"
       assert response =~ ~p"/client/log-out"
     end
 

@@ -173,6 +173,28 @@ antpress が持つ機能は以下に限定する。これ以上は増やさな�
 - ただし**どの業種でも使える基本的なものは初期状態で用意しておく**（プリセット）。空の状態から作らせない。
 - **1 記事 1 カテゴリ。** 複数選択にはしない。
 
+**本文の保存形式**
+
+`body` は **常に Markdown**。`body_format` は
+**次に開くときどちらのモードで開くか**の記録にすぎない。
+
+Toast UI Editor は WYSIWYG モードでも内部表現が Markdown で、
+`getMarkdown()` はどちらのモードでも Markdown を返す。
+リッチテキスト側を HTML で保存すると、**切り替えのたびに情報が落ちる。**
+
+配信用の `body_html` は**サーバー側で Markdown から生成する**。
+エディタの `getHTML()` は使わない（クライアントが作った HTML を信用すると
+XSS の経路になる）。
+
+**Markdown に書かれた生 HTML は通さない。**
+
+`<script>` も `onerror` も `<iframe>` も落とす（→ `AntPress.Blog.Markdown`）。
+サニタイザの許可リストの正しさに依存せず、構造的に通らない形にしている。
+
+⚠️ **代償**: YouTube や Google Maps の iframe 埋め込みができない。
+必要になった時点で「許可リスト付きサニタイズ」へ切り替える判断をする。
+先回りして緩めない。
+
 **タグは作らない**
 
 当初は採用としたが撤回した。理由は 3 つ。
@@ -567,7 +589,7 @@ SUPABASE_STORAGE_BUCKET=antpress    # 省略時 antpress
 
 | プラン | 方針 |
 | --- | --- |
-| 基本プラン | **Toast UI Editor**（OSS / Apache-2.0）を JS Hook 経由で組み込む |
+| 基本プラン | **Toast UI Editor**（OSS / **MIT**）を JS Hook 経由で組み込む |
 | AI プラン | **自前実装**。TipTap 等のエコシステムは使わない |
 
 **Toast UI Editor を選んだ理由**
@@ -585,6 +607,39 @@ AI プランは「原文の textarea ＋ 生成結果の表示」が中心でリ
 > ```heex
 > <div id="editor" phx-hook="Editor" phx-update="ignore"></div>
 > ```
+
+#### 実装して分かったこと（2026-09-05）
+
+**1. npm の dist は使えない。CDN の `-all` ビルドだけが自己完結している。**
+
+`@toast-ui/editor` の npm パッケージは prosemirror を `dependencies` として
+外部化しており、`dist/toastui-editor.js` は**単体では動かない**。
+`<script>` で読んでも prosemirror が `undefined` になり、esbuild で
+バンドルしようとすると `prosemirror-state` が解決できずに失敗する。
+
+prosemirror を同梱しているのは CDN の **`toastui-editor-all.min.js`**
+（522KB）だけ。文字列リテラル（`ProseMirror-hideselection` など）で確認した。
+なお `-all` はプラグイン（chart / uml / syntax highlight）を含まない。
+
+**2. `app.js` にバンドルしない。**
+
+522KB を `app.js` に入れると**全ページが読み込む。** 記事フォームでしか
+使わないので `priv/static/vendor/` に置き、その画面だけ `<script>` で読む
+（→ `docs/VENDORED-ASSETS.md`）。npm を入れないのでデプロイイメージに
+Node が要らない。
+
+**3. 本文の hidden input も `ignore` の中に置く。**
+
+外に置くと、他のフィールドの検証で再描画されたときに、JS が入れた本文が
+サーバー側の古い値へ巻き戻る。LiveView は `ignore` の中身を更新しないが、
+フォーム送信時のシリアライズは DOM を読むので値は届く。
+
+**4. `addImageBlobHook` を必ず渡す。**
+
+渡さないと Toast UI は画像を **data URI** にして Markdown に埋める。
+数百 KB の base64 が `body` と `body_html` に入り、記事も配信 API の
+レスポンスも肥大する。アップロード先は `POST /client/editor/images`
+（LiveView ではなくコントローラ。ファイルが JS の握る Blob として来るため）。
 
 ### 4.4b コンテキスト名の検討結果
 
@@ -762,3 +817,14 @@ developer だけを指すので admin を含まない。
 | 2026-09-05 | Supabase Storage への実接続を検証済み（put → 公開 URL 取得 → delete）。バケット `antpress` を Public / 5MB / 4 形式で作成 | 認証情報が揃ったため。バケット側の MIME・サイズ制限はアプリ層の検証と二重にした（DB の CHECK 制約と同じ考え方） |
 | 2026-09-05 | **画像を削除しても公開 URL は約 1 時間返り続ける**（Cloudflare のキャッシュ）。`cacheControl` は既定のまま延ばさない | HP は Astro の SSG で `<Image>` がビルド時に最適化済みコピーを作るため、エンドユーザーは Supabase の URL を踏まない。TTL 延長の利点が小さく、削除が反映されない時間が伸びる不利益が大きい |
 | 2026-09-05 | テスト環境は `SUPABASE_URL` が設定されていても必ずローカルアダプタを使う（テストで固定） | 崩れるとテストがユーザーの本番バケットに書き込む |
+| 2026-09-05 | 記事本文は **常に Markdown** で保存する。`body_format` は「次に開くエディタのモード」の記録 | Toast UI は WYSIWYG でも内部表現が Markdown。リッチテキストを HTML で保存すると切り替えのたびに情報が落ちる |
+| 2026-09-05 | `body_html` は**サーバー側で生成**する。エディタの `getHTML()` は使わない | クライアントが作った HTML を信用すると XSS の経路になる |
+| 2026-09-05 | Markdown 中の**生 HTML を通さない**（`unsafe: false`）。iframe 埋め込みは不可 | サニタイザの許可リストの正しさに依存しない。必要になった時点で許可リスト付きサニタイズへ切り替える |
+| 2026-09-05 | Markdown レンダラは **MDEx**。**earmark は使わない** | earmark は廃止済みで、stored XSS の CVE（EEF-CVE-2026-48591）がある。廃止メッセージ自身が MDEx を案内している |
+| 2026-09-05 | GFM 拡張（表 / 打ち消し / チェックリスト / オートリンク）を有効にする | CommonMark 既定では**表が素のテキストになる**。Toast UI のツールバーにボタンがあるので、ユーザーが作れるものが崩れる |
+| 2026-09-05 | Toast UI Editor は **CDN の `-all` ビルドを `priv/static/vendor/` に同梱**する（npm を使わない） | npm の dist は prosemirror を同梱しておらず単体で動かない。同梱すればデプロイイメージに Node が要らない |
+| 2026-09-05 | エディタを `app.js` にバンドルしない。記事フォームだけが `<script>` で読む | 522KB を全ページに読み込ませない |
+| 2026-09-05 | 記事本文への画像挿入は `POST /client/editor/images`（LiveView ではなくコントローラ） | `addImageBlobHook` を渡さないと画像が data URI として本文に埋まる。ファイルは JS が握る Blob として来るので `allow_upload` と噛み合わない |
+| 2026-09-05 | ログイン後の着地点を **記事一覧**（`/client/articles`）にした | `SCREENS.md` の方針どおり。実装 5 まで設定画面を暫定の行き先にしていた |
+| 2026-09-05 | `blog_articles` の timestamps も **マイクロ秒**にする | 一覧を `updated_at` 降順で並べるため。秒精度だと同着になり UUID 順になる（テストで検出） |
+| 2026-09-05 | `category_id` / `thumbnail_image_id` は**同じクライアントのものかをアプリ層で検証**する | 外部キー制約は「存在するか」しか見ない。偽装リクエストで他社のカテゴリ名・画像を自社サイトに載せられる |

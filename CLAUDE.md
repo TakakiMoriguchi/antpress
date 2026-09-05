@@ -315,10 +315,36 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 
 ### エディタ
 
-- 基本プランは **Toast UI Editor**（Markdown / WYSIWYG 切替）
+- 基本プランは **Toast UI Editor**（Markdown / WYSIWYG 切替）。ライセンスは MIT
 - ⚠️ **`phx-update="ignore"` を必ず付ける。** 付けないと LiveView の DOM パッチで
   JS が構築したエディタが破壊される
+- ⚠️ **本文の hidden input も `ignore` の中に置く。** 外に置くと、他フィールドの
+  検証で再描画されたときに JS が入れた本文がサーバー側の古い値へ巻き戻る
+- ⚠️ **`addImageBlobHook` を必ず渡す。** 渡さないと画像が data URI として
+  本文に埋め込まれ、記事と配信 API のレスポンスが肥大する。
+  送り先は `POST /client/editor/images`
+- ⚠️ **npm の dist は使えない**（prosemirror が同梱されていない）。
+  自己完結しているのは CDN の `toastui-editor-all.min.js` だけ。
+  `priv/static/vendor/` に同梱し、記事フォームだけが `<script>` で読む
+  （→ `docs/VENDORED-ASSETS.md`）
 - AI プランは自前実装。TipTap 等の大きな JS エコシステムは使わない
+
+### 記事本文の扱い
+
+- **`body` は常に Markdown。** `body_format` は次に開くエディタのモードの記録
+- **`body_html` はサーバー側で生成する。** エディタの `getHTML()` は使わない
+- **Markdown に書かれた生 HTML は通さない**（`unsafe: false`）。
+  `<script>` も `<iframe>` も落ちる。**earmark は使わない**
+  （廃止済み ＋ stored XSS の CVE）。MDEx を使う
+- ⚠️ `category_id` / `thumbnail_image_id` は**同じクライアントのものか検証する**。
+  外部キー制約は「存在するか」しか見ない。
+  `AntPress.Blog.validate_scoped_associations/2`
+
+### ⚠️ `priv/static/vendor/` に置いたものは全部公開される
+
+`static_paths/0` に `vendor` を入れているので、その配下は**すべて HTTP で
+取得できる**。同梱アセットの出所や更新手順のメモは `docs/` に置く
+（README を置いてしまい公開状態になっていた）。
 
 ### お問い合わせ
 
@@ -343,6 +369,15 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 # 最初の admin を作る
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
 ```
+
+### ⚠️ 時系列で並べる一覧のテーブルは timestamps を `utc_datetime_usec` にする
+
+`images` と `blog_articles` がこれ。秒精度だと同一秒のレコードが同着になり、
+第 2 キー（ランダムな UUID）で順序が決まる。**「まとめて上げた画像が
+ばらばらに並ぶ」「保存したのに一覧の先頭に来ない」**という見え方になる。
+どちらも実際にテストで検出した。
+
+`blog_categories` のように `position` で並べるテーブルは秒精度のままでよい。
 
 ### ⚠️ `.gitignore` の env パターンは `.env*`（`.env.*` にしない）
 

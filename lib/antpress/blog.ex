@@ -4,9 +4,11 @@ defmodule AntPress.Blog do
   """
 
   import Ecto.Query, warn: false
+  import Ecto.Changeset, only: [fetch_change: 2, add_error: 3]
   alias AntPress.Repo
 
-  alias AntPress.Blog.Category
+  alias AntPress.Blog.{Article, Category}
+  alias AntPress.Media.Image
 
   alias AntPress.Platform.Client
   alias AntPress.Accounts.Scope
@@ -133,6 +135,196 @@ defmodule AntPress.Blog do
       broadcast_category(scope, {:deleted, category})
       {:ok, category}
     end
+  end
+
+  ## ─────────────────────────────────────────────
+  ## 記事
+  ## ─────────────────────────────────────────────
+
+  @doc """
+  Subscribes to scoped notifications about any article changes.
+
+  The broadcasted messages match the pattern:
+
+    * {:created, %Article{}}
+    * {:updated, %Article{}}
+    * {:deleted, %Article{}}
+
+  """
+  def subscribe_articles(%Scope{} = scope) do
+    Phoenix.PubSub.subscribe(AntPress.PubSub, "client:#{scope.client.id}:blog_articles")
+  end
+
+  defp broadcast_article(%Scope{} = scope, message) do
+    Phoenix.PubSub.broadcast(AntPress.PubSub, "client:#{scope.client.id}:blog_articles", message)
+  end
+
+  @doc """
+  クライアントの記事一覧。**管理画面向けなので下書きも含む。**
+
+  更新が新しいものを先に出す。公開日時順にしないのは、予約投稿（未来日時）が
+  常に先頭に来てしまい、いま書いている記事が埋もれるため。
+
+  ## 絞り込み（→ `docs/SCREENS.md` C3）
+
+      list_articles(scope, filter: :draft)      # 下書き
+      list_articles(scope, filter: :published)  # 公開済み（公開日時が過去）
+      list_articles(scope, filter: :scheduled)  # 予約投稿（公開日時が未来）
+      list_articles(scope, q: "ラーメン")        # タイトルの部分一致
+
+  **「予約」は専用ステータスではない。** `status = :published` かつ
+  `published_at` が未来のものを指す（→ `AntPress.Blog.Article`）。
+  """
+  def list_articles(%Scope{} = scope, opts \\ []) do
+    Article
+    |> where(client_id: ^scope.client.id)
+    |> filter_articles(Keyword.get(opts, :filter, :all))
+    |> search_articles(Keyword.get(opts, :q))
+    |> order_by(desc: :updated_at, desc: :id)
+    |> preload([:category, :thumbnail_image])
+    |> Repo.all()
+  end
+
+  defp filter_articles(query, :draft), do: where(query, status: :draft)
+
+  defp filter_articles(query, :published) do
+    now = DateTime.utc_now(:second)
+    where(query, [a], a.status == :published and a.published_at <= ^now)
+  end
+
+  defp filter_articles(query, :scheduled) do
+    now = DateTime.utc_now(:second)
+    where(query, [a], a.status == :published and a.published_at > ^now)
+  end
+
+  defp filter_articles(query, _all), do: query
+
+  defp search_articles(query, nil), do: query
+  defp search_articles(query, ""), do: query
+
+  defp search_articles(query, q) do
+    # 記事数が数十本の規模なので ILIKE で足りる。全文検索は入れない
+    like = "%" <> escape_like(q) <> "%"
+    where(query, [a], ilike(a.title, ^like))
+  end
+
+  # ILIKE のワイルドカードを打ち消す。"100%" で検索したときに
+  # 全件一致にならないようにする
+  defp escape_like(q) do
+    q
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
+  end
+
+  @doc """
+  記事の件数を絞り込みごとに数える。一覧のタブに出す。
+  """
+  def count_articles_by_filter(%Scope{} = scope) do
+    Map.new([:all, :draft, :published, :scheduled], fn filter ->
+      count =
+        Article
+        |> where(client_id: ^scope.client.id)
+        |> filter_articles(filter)
+        |> Repo.aggregate(:count)
+
+      {filter, count}
+    end)
+  end
+
+  @doc """
+  記事を 1 件取得する。他クライアントの記事は取れない。
+  """
+  def get_article!(%Scope{} = scope, id) do
+    Article
+    |> where(client_id: ^scope.client.id, id: ^id)
+    |> preload([:category, :thumbnail_image])
+    |> Repo.one!()
+  end
+
+  @doc """
+  記事を作成する。
+  """
+  def create_article(%Scope{} = scope, attrs) do
+    with {:ok, %Article{} = article} <-
+           %Article{}
+           |> Article.changeset(attrs, scope)
+           |> validate_scoped_associations(scope)
+           |> Repo.insert() do
+      broadcast_article(scope, {:created, article})
+      {:ok, Repo.preload(article, [:category, :thumbnail_image])}
+    end
+  end
+
+  @doc """
+  記事を更新する。
+  """
+  def update_article(%Scope{} = scope, %Article{} = article, attrs) do
+    true = article.client_id == scope.client.id
+
+    with {:ok, %Article{} = article} <-
+           article
+           |> Article.changeset(attrs, scope)
+           |> validate_scoped_associations(scope)
+           |> Repo.update() do
+      broadcast_article(scope, {:updated, article})
+      {:ok, Repo.preload(article, [:category, :thumbnail_image], force: true)}
+    end
+  end
+
+  @doc """
+  記事を削除する。
+  """
+  def delete_article(%Scope{} = scope, %Article{} = article) do
+    true = article.client_id == scope.client.id
+
+    with {:ok, %Article{} = article} <- Repo.delete(article) do
+      broadcast_article(scope, {:deleted, article})
+      {:ok, article}
+    end
+  end
+
+  @doc """
+  記事フォーム用の changeset。
+  """
+  def change_article(%Scope{} = scope, %Article{} = article, attrs \\ %{}) do
+    if article.client_id, do: true = article.client_id == scope.client.id
+
+    Article.changeset(article, attrs, scope)
+  end
+
+  @doc """
+  ⚠️ **カテゴリとサムネイル画像が同じクライアントのものかを検証する。**
+
+  `category_id` / `thumbnail_image_id` はフォームから来る。画面には自分の
+  カテゴリと画像しか出ないが、**リクエストは偽装できる。** 検証しないと
+  他クライアントのカテゴリ名や画像を自社サイトに載せられてしまう
+  （2 段テナントスコープの穴 → `CLAUDE.md`）。
+
+  DB の外部キー制約は「存在するか」しか見ないので、これは別に必要。
+  """
+  def validate_scoped_associations(%Ecto.Changeset{} = changeset, %Scope{} = scope) do
+    changeset
+    |> validate_belongs_to_client(:category_id, Category, scope, "選べないカテゴリです")
+    |> validate_belongs_to_client(:thumbnail_image_id, Image, scope, "選べない画像です")
+  end
+
+  defp validate_belongs_to_client(changeset, field, schema, scope, message) do
+    case fetch_change(changeset, field) do
+      # 変更なし、または未設定にした場合は検証不要
+      :error -> changeset
+      {:ok, nil} -> changeset
+      {:ok, id} -> check_owner(changeset, field, schema, scope, id, message)
+    end
+  end
+
+  defp check_owner(changeset, field, schema, scope, id, message) do
+    owned? =
+      schema
+      |> where(id: ^id, client_id: ^scope.client.id)
+      |> Repo.exists?()
+
+    if owned?, do: changeset, else: add_error(changeset, field, message)
   end
 
   @doc """

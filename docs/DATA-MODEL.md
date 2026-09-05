@@ -351,6 +351,26 @@ erDiagram
 
 **再生成履歴は保存しない**（→ `DECISIONS.md` 3.1）。上書きする。
 
+#### 実装メモ
+
+- ⚠️ `inserted_at` / `updated_at` は **`utc_datetime_usec`**（`images` と同じ理由）。
+  一覧を `updated_at` 降順で並べるため、秒精度だと同一秒の記事が同着になり、
+  第 2 キー（ランダムな UUID）で順序が決まる。**「保存したのに先頭に来ない」**
+  という見え方になる（テストで検出）
+- `category_id` / `thumbnail_image_id` は **`on_delete: :nilify_all`**。
+  これを付けないと画像やカテゴリの削除が FK 違反で失敗する。
+  記事は残り、未分類・サムネイルなしになる
+- 両方の FK に索引を張る。`nilify_all` の際に全走査させないため
+- ⚠️ **CHECK 制約 `status <> 'published' OR published_at IS NOT NULL`**。
+  公開なのに `published_at` が null だと配信条件
+  （`published_at <= now()`）に永久に一致せず、**表示されない記事**になる。
+  気付きにくい沈黙バグなので DB で禁止する
+- ⚠️ `category_id` / `thumbnail_image_id` が**同じクライアントのものか**は
+  外部キー制約では守れない（「存在するか」しか見ない）。
+  `AntPress.Blog.validate_scoped_associations/2` で検証する。
+  検証しないと、リクエストを偽装して**他クライアントのカテゴリ名や画像を
+  自社サイトに載せられる**
+
 ### 3.9 `images` — 画像
 
 
@@ -469,6 +489,7 @@ HP 上で画像が壊れて見える。問い合わせを DB 保存優先にし�
 | `blog_categories` | `UNIQUE (client_id, slug)` | |
 | `images` | `(client_id, inserted_at DESC)` | 画像一覧 |
 | `images` | `UNIQUE (storage_path)` | 同じパスを 2 レコードが指すのを防ぐ |
+| `blog_articles` | `(category_id)` / `(thumbnail_image_id)` | `on_delete: :nilify_all` の際の全走査を避ける |
 | `contact_submissions` | `(client_id, inserted_at DESC)` | 問い合わせ一覧 |
 | `users` | `UNIQUE (email)` / `(client_id)` | ログイン / メンバー一覧 |
 | `clients` | `UNIQUE (slug)` | |

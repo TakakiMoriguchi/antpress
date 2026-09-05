@@ -67,6 +67,11 @@ defmodule AntPress.MixProject do
        app: false,
        compile: false,
        depth: 1},
+      # 記事本文（Markdown）を配信用 HTML にレンダリングする。
+      # ⚠️ earmark は使わない。**廃止済み**で、しかも stored XSS の
+      #    CVE がある（EEF-CVE-2026-48591）。廃止メッセージ自身が
+      #    MDEx への移行を案内している
+      {:mdex, "~> 0.13"},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:gettext, "~> 1.0"},
