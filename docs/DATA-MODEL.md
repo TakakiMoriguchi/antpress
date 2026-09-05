@@ -338,13 +338,18 @@ erDiagram
 | `generation_error` | text | | 失敗時のメッセージ |
 | `category_id` | uuid | FK | null 許容 |
 | `thumbnail_image_id` | uuid | FK → `images` | null 許容 |
-| `status` | enum | not null, default `draft` | `draft` / `published` |
+| `status` | enum | not null, **default `published`** | `draft` / `published`。書いたらそのまま出したい方が普通 |
 | `published_at` | utc_datetime | | 公開日時。未来日時なら予約投稿 |
 | `published_notified_at` | utc_datetime | | Webhook 通知済みの時刻（→ 5.1） |
 | `inserted_at` / `updated_at` | utc_datetime | not null | |
 
 **`body_html` を持つ理由**: 配信 API が HTML を返せば、**HP 側に Markdown
 パーサが不要**になる。保存時にレンダリングしてキャッシュする。
+
+⚠️ **`published_at` は UTC で保存する。管理画面の表示・入力は日本時間**
+（→ `AntPressWeb.JST`）。`<input type="datetime-local">` はタイムゾーンを
+持たないため、変換を挟まないと**予約投稿が 9 時間ずれる。**
+配信 API は UTC の ISO8601 をそのまま返す。
 
 **予約投稿の表現**: `status = published` かつ `published_at` が未来。
 専用の `scheduled` ステータスは作らない。配信条件を

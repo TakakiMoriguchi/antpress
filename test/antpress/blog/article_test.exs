@@ -27,7 +27,9 @@ defmodule AntPress.Blog.ArticleTest do
                })
 
       assert article.client_id == scope.client.id
-      assert article.status == :draft
+      # 既定は「公開」（書いたらそのまま出したい方が普通）
+      assert article.status == :published
+      assert article.published_at != nil
       # 既定は WYSIWYG（Markdown は玄人向け）
       assert article.body_format == :rich_text
       assert article.generation_status == :idle

@@ -56,7 +56,7 @@ defmodule AntPressWeb.ArticleLive.Form do
   alias AntPress.{Blog, Media}
   alias AntPress.Blog.Article
   alias AntPress.Media.Image
-  alias AntPressWeb.MediaError
+  alias AntPressWeb.{JST, MediaError}
 
   @impl true
   def render(assigns) do
@@ -159,13 +159,16 @@ defmodule AntPressWeb.ArticleLive.Form do
           label="公開状態"
           options={[{"下書き", "draft"}, {"公開", "published"}]}
         />
+        <%!-- ⚠️ 表示・入力は日本時間。保存は UTC（→ AntPressWeb.JST） --%>
         <.input
           field={@form[:published_at]}
           type="datetime-local"
-          label="公開日時"
+          label="公開日時（日本時間）"
+          value={JST.to_input_value(@form[:published_at].value)}
         />
         <p class="mt-1 text-sm text-base-content/60">
-          空のまま「公開」にすると現在時刻で公開します。未来の日時を入れると予約投稿になります。
+          <strong>「公開」を選んだときだけ使われます。</strong>空のままなら保存した時刻で公開します。<br />
+          未来の日時を入れると、その日時になるまで公開されません（予約投稿）。<br /> 「下書き」のあいだは公開されないので、この欄は空のままで構いません。
         </p>
 
         <footer class="mt-6 flex gap-2">
@@ -450,14 +453,14 @@ defmodule AntPressWeb.ArticleLive.Form do
   @impl true
   def handle_event("validate", %{"article" => attrs}, socket) do
     changeset =
-      Blog.change_article(socket.assigns.current_user, socket.assigns.article, attrs)
+      Blog.change_article(socket.assigns.current_user, socket.assigns.article, to_utc(attrs))
 
     {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
   end
 
   @impl true
   def handle_event("save", %{"article" => attrs}, socket) do
-    save_article(socket, socket.assigns.live_action, attrs)
+    save_article(socket, socket.assigns.live_action, to_utc(attrs))
   end
 
   @impl true
@@ -568,6 +571,10 @@ defmodule AntPressWeb.ArticleLive.Form do
         {:noreply, assign_form(socket, changeset)}
     end
   end
+
+  # ⚠️ datetime-local はタイムゾーンを持たない。日本時間として入力された
+  # 値を UTC に直してから changeset に渡す（→ AntPressWeb.JST）
+  defp to_utc(attrs), do: JST.shift_params(attrs, ["published_at"])
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset, as: "article"))

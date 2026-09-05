@@ -82,7 +82,9 @@ defmodule AntPress.Blog.Article do
     field :generation_status, Ecto.Enum, values: [:idle, :generating, :failed], default: :idle
     field :generation_error, :string
 
-    field :status, Ecto.Enum, values: [:draft, :published], default: :draft
+    # 既定は `:published`。書いたらそのまま出したい方が普通で、
+    # 下書きにしたい場合だけ切り替える
+    field :status, Ecto.Enum, values: [:draft, :published], default: :published
     field :published_at, :utc_datetime
     # Webhook 通知済みの時刻（実装 7）
     field :published_notified_at, :utc_datetime

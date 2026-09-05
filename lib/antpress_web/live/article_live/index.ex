@@ -11,6 +11,7 @@ defmodule AntPressWeb.ArticleLive.Index do
 
   alias AntPress.Blog
   alias AntPress.Blog.Article
+  alias AntPressWeb.JST
 
   @filters [all: "すべて", draft: "下書き", published: "公開", scheduled: "予約"]
 
@@ -216,11 +217,15 @@ defmodule AntPressWeb.ArticleLive.Index do
     if state_label(article) == "予約", do: "badge-warning", else: "badge-success"
   end
 
-  defp published_at_label(%Article{published_at: nil}), do: "—"
+  # ⚠️ 下書きは公開日時を出さない。
+  #
+  # 一度公開してから下書きに戻すと `published_at` は残るので、そのまま
+  # 表示すると「下書きなのに公開日時が入っている」ことになる。
+  # また `—` だと「データが無い」ように見えて、公開していないだけなのか
+  # 入力し忘れなのか分からない。
+  defp published_at_label(%Article{status: :draft}), do: "未公開"
+  defp published_at_label(%Article{published_at: nil}), do: "未公開"
 
-  defp published_at_label(%Article{published_at: at}) do
-    at
-    |> DateTime.shift_zone!("Etc/UTC")
-    |> Calendar.strftime("%Y-%m-%d %H:%M")
-  end
+  # ⚠️ 保存は UTC、表示は日本時間（→ AntPressWeb.JST）
+  defp published_at_label(%Article{published_at: at}), do: JST.format(at)
 end

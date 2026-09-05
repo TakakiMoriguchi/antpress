@@ -137,6 +137,17 @@ defmodule AntPressWeb.ArticleLiveTest do
   end
 
   describe "編集画面（C4）" do
+    test "公開状態の既定は「公開」", %{conn: conn, scope: scope} do
+      # 書いたらそのまま出したい方が普通（ユーザー判断）
+      {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
+
+      render_submit(lv, "save", %{"article" => %{"title" => "既定の確認"}})
+
+      assert [article] = Blog.list_articles(scope)
+      assert article.status == :published
+      assert article.published_at != nil
+    end
+
     test "新規作成画面が開く", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
 
@@ -286,6 +297,60 @@ defmodule AntPressWeb.ArticleLiveTest do
       assert_raise Ecto.NoResultsError, fn ->
         live(conn, ~p"/client/articles/#{other}/edit")
       end
+    end
+  end
+
+  describe "⚠️ 公開日時（日本時間）" do
+    test "入力した日本時間が UTC で保存される", %{conn: conn, scope: scope} do
+      # ここが壊れると予約投稿が 9 時間ずれる
+      {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
+
+      render_submit(lv, "save", %{
+        "article" => %{
+          "title" => "予約",
+          "status" => "published",
+          "published_at" => "2026-09-10T18:00"
+        }
+      })
+
+      assert [article] = Blog.list_articles(scope)
+      assert article.published_at == ~U[2026-09-10 09:00:00Z]
+    end
+
+    test "編集画面には日本時間で表示される", %{conn: conn, scope: scope} do
+      article =
+        article_fixture(scope, %{status: :published, published_at: ~U[2026-09-10 09:00:00Z]})
+
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/#{article}/edit")
+
+      assert html =~ ~s(value="2026-09-10T18:00")
+      assert html =~ "公開日時（日本時間）"
+    end
+
+    test "一覧にも日本時間で表示される", %{conn: conn, scope: scope} do
+      article_fixture(scope, %{
+        title: "予約記事",
+        status: :published,
+        published_at: ~U[2026-09-10 09:00:00Z]
+      })
+
+      {:ok, _lv, html} = live(conn, ~p"/client/articles")
+
+      assert html =~ "2026-09-10 18:00"
+      refute html =~ "2026-09-10 09:00"
+    end
+
+    test "下書きは公開日時を出さない", %{conn: conn, scope: scope} do
+      # 一度公開してから下書きに戻すと published_at は残る。
+      # そのまま出すと「下書きなのに公開日時がある」ことになる
+      article = published_article_fixture(scope, %{title: "戻した記事"})
+      {:ok, _} = Blog.update_article(scope, article, %{status: :draft})
+
+      {:ok, _lv, html} = live(conn, ~p"/client/articles")
+
+      row = Regex.run(~r/戻した記事.*?<\/tr>/s, html) |> List.first()
+      assert row =~ "未公開"
+      refute row =~ "2026-"
     end
   end
 

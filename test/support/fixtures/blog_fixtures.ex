@@ -34,7 +34,10 @@ defmodule AntPress.BlogFixtures do
     attrs =
       Enum.into(attrs, %{
         title: "新メニューのお知らせ",
-        body: "# 見出し\n\n本文です。"
+        body: "# 見出し\n\n本文です。",
+        # ⚠️ スキーマの既定は :published。テストでは意図を明示するため
+        # フィクスチャ側で下書きに倒しておく
+        status: :draft
       })
 
     {:ok, article} = AntPress.Blog.create_article(scope, attrs)

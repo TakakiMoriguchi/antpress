@@ -32,7 +32,9 @@ defmodule AntPress.Repo.Migrations.CreateBlogArticles do
       #    画像を消したらサムネイルが外れる（画面の確認文で予告している）
       add :thumbnail_image_id, references(:images, type: :binary_id, on_delete: :nilify_all)
 
-      add :status, :string, null: false, default: "draft"
+      # 既定は「公開」。書いたらそのまま出したい方が普通で、
+      # 下書きにしたい場合だけ切り替える（ユーザー判断）
+      add :status, :string, null: false, default: "published"
       # 未来日時なら予約投稿。専用ステータスは作らない
       add :published_at, :utc_datetime
       # Webhook 通知済みの時刻（実装 7）。null が再送対象
