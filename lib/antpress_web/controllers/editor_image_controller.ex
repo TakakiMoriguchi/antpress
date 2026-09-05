@@ -28,9 +28,8 @@ defmodule AntPressWeb.EditorImageController do
   """
   use AntPressWeb, :controller
 
-  import AntPressWeb.CoreComponents, only: [translate_error: 1]
-
   alias AntPress.Media
+  alias AntPressWeb.MediaError
 
   def create(conn, %{"file" => %Plug.Upload{} = upload}) do
     scope = conn.assigns.current_user
@@ -54,22 +53,17 @@ defmodule AntPressWeb.EditorImageController do
     json(conn, %{url: Media.public_url(image), altText: image.alt_text || image.filename})
   end
 
-  defp respond({:error, :unsupported_format}, conn) do
-    error(conn, 422, "対応していない画像形式です（JPEG / PNG / GIF / WebP）")
+  defp respond({:error, :unsupported_format = reason}, conn) do
+    error(conn, 422, MediaError.message(reason))
   end
 
-  defp respond({:error, {:storage, _reason}}, conn) do
-    error(conn, 502, "保存先への書き込みに失敗しました。しばらくしてからもう一度お試しください")
+  # ストレージ側の障害なので 5xx。クライアントが再試行してよい
+  defp respond({:error, {:storage, _} = reason}, conn) do
+    error(conn, 502, MediaError.message(reason))
   end
 
   defp respond({:error, %Ecto.Changeset{} = changeset}, conn) do
-    message =
-      changeset
-      |> Ecto.Changeset.traverse_errors(fn {msg, opts} -> translate_error({msg, opts}) end)
-      |> Enum.flat_map(fn {_field, messages} -> messages end)
-      |> Enum.join("。")
-
-    error(conn, 422, if(message == "", do: "保存できませんでした", else: message))
+    error(conn, 422, MediaError.message(changeset))
   end
 
   defp error(conn, status, message) do

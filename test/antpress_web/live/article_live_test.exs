@@ -290,12 +290,71 @@ defmodule AntPressWeb.ArticleLiveTest do
   end
 
   describe "サムネイル選択" do
-    test "画像がなければ画像管理への案内を出す", %{conn: conn} do
+    test "画像がなくてもモーダル内でアップロードできる", %{conn: conn} do
+      # ⚠️ ここから画像管理へ遷移させると書きかけの記事が失われる
       {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
 
       html = lv |> element("button", "画像を選択") |> render_click()
-      assert html =~ "画像がありません"
-      assert html =~ "/client/images"
+
+      assert html =~ "まだ画像がありません"
+      assert html =~ "クリックして選択、またはここにドラッグ＆ドロップ"
+      # 画像管理へのリンクは残すが、別タブで開く
+      assert html =~ ~s(target="_blank")
+      refute html =~ ~s(data-phx-link="redirect" href="/client/images")
+    end
+
+    test "モーダルからアップロードするとサムネイルに設定される", %{conn: conn, scope: scope} do
+      {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
+      lv |> element("button", "画像を選択") |> render_click()
+
+      html =
+        lv
+        |> file_input("#thumbnail-upload", :thumbnail, [
+          %{name: "gaikan.png", content: png(1200, 630)}
+        ])
+        |> render_upload("gaikan.png")
+
+      assert [image] = AntPress.Media.list_images(scope)
+      assert image.filename == "gaikan.png"
+      assert html =~ "画像をアップロードしてサムネイルに設定しました"
+      # モーダルは閉じ、サムネイルとして表示される
+      refute html =~ "サムネイルを選択"
+      assert html =~ AntPress.Media.public_url(image)
+    end
+
+    test "アップロードしたサムネイルをそのまま保存できる", %{conn: conn, scope: scope} do
+      {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
+      lv |> element("button", "画像を選択") |> render_click()
+
+      lv
+      |> file_input("#thumbnail-upload", :thumbnail, [
+        %{name: "gaikan.png", content: png()}
+      ])
+      |> render_upload("gaikan.png")
+
+      [image] = AntPress.Media.list_images(scope)
+
+      render_submit(lv, "save", %{
+        "article" => %{"title" => "題", "thumbnail_image_id" => image.id}
+      })
+
+      assert [article] = AntPress.Blog.list_articles(scope)
+      assert article.thumbnail_image_id == image.id
+    end
+
+    test "⚠️ 対応していない形式はモーダル内で弾く", %{conn: conn, scope: scope} do
+      {:ok, lv, _html} = live(conn, ~p"/client/articles/new")
+      lv |> element("button", "画像を選択") |> render_click()
+
+      html =
+        lv
+        |> file_input("#thumbnail-upload", :thumbnail, [
+          %{name: "evil.png", content: "<script>alert(1)</script>"}
+        ])
+        |> render_upload("evil.png")
+
+      assert html =~ "対応していない画像形式です"
+      assert AntPress.Media.list_images(scope) == []
     end
 
     test "画像を選ぶとサムネイルに設定される", %{conn: conn, scope: scope} do

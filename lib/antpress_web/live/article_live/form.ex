@@ -17,6 +17,15 @@ defmodule AntPressWeb.ArticleLive.Form do
   **要素ごと差し替えてエディタを作り直させる**ため。`ignore` は中身を
   更新しないので、id が同じままだと前の記事の本文が残る。
 
+  ## サムネイル選択のモーダルでアップロードまで完結させる
+
+  ⚠️ **ここから画像管理へリンクで飛ばさない。書きかけの記事が失われる。**
+  画像が 1 枚も無いときに「画像管理へ」と促すと、記事を書き始めた人が
+  必ず作業を失う導線になる。
+
+  説明文の編集や削除は画像管理で行うが、そちらへのリンクは
+  `target="_blank"` にして同じ事故を防ぐ。
+
   ## アドレス（`slug`）の入力欄は出さない
 
   システムが決めて以後変えない（→ `AntPress.Blog.Article`）。
@@ -46,6 +55,8 @@ defmodule AntPressWeb.ArticleLive.Form do
 
   alias AntPress.{Blog, Media}
   alias AntPress.Blog.Article
+  alias AntPress.Media.Image
+  alias AntPressWeb.MediaError
 
   @impl true
   def render(assigns) do
@@ -159,8 +170,43 @@ defmodule AntPressWeb.ArticleLive.Form do
         <div class="modal-box max-w-3xl">
           <h3 class="text-lg font-semibold">サムネイルを選択</h3>
 
+          <%!-- ⚠️ ここから画像管理へリンクで飛ばさない。**書きかけの記事が失われる。**
+                モーダルの中でアップロードまで完結させる --%>
+          <form id="thumbnail-upload" phx-change="validate-thumbnail-upload" phx-submit="noop">
+            <label
+              class="mt-4 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-base-300 px-4 py-6 text-center cursor-pointer hover:border-primary hover:bg-base-200/40"
+              phx-drop-target={@uploads.thumbnail.ref}
+            >
+              <.icon name="hero-arrow-up-tray" class="size-5 text-base-content/60" />
+              <span class="text-sm font-medium">
+                クリックして選択、またはここにドラッグ＆ドロップ
+              </span>
+              <span class="text-xs text-base-content/60">
+                アップロードするとサムネイルに設定されます
+              </span>
+              <.live_file_input upload={@uploads.thumbnail} class="sr-only" />
+            </label>
+          </form>
+
+          <div :for={err <- upload_errors(@uploads.thumbnail)} class="alert alert-error mt-2">
+            {upload_error_message(err)}
+          </div>
+
+          <div :for={entry <- @uploads.thumbnail.entries} class="mt-2 rounded-lg bg-base-200 p-3">
+            <div class="flex items-center gap-3">
+              <span class="flex-1 truncate text-sm">{entry.client_name}</span>
+              <progress class="progress progress-primary w-32" value={entry.progress} max="100"></progress>
+            </div>
+            <p
+              :for={err <- upload_errors(@uploads.thumbnail, entry)}
+              class="mt-1 text-sm text-error"
+            >
+              {upload_error_message(err)}
+            </p>
+          </div>
+
           <p :if={@images == []} class="mt-6 text-center text-base-content/60">
-            画像がありません。<.link navigate={~p"/client/images"} class="link">画像管理</.link>からアップロードしてください。
+            まだ画像がありません。上のエリアからアップロードしてください。
           </p>
 
           <div
@@ -184,7 +230,12 @@ defmodule AntPressWeb.ArticleLive.Form do
             </button>
           </div>
 
-          <div class="modal-action">
+          <div class="modal-action items-center justify-between">
+            <%!-- 説明の編集や削除は画像管理で行う。
+                  ⚠️ target="_blank" にしないと書きかけの記事が失われる --%>
+            <.link href={~p"/client/images"} target="_blank" rel="noopener" class="link text-sm">
+              画像管理を開く（別のタブ）
+            </.link>
             <.button type="button" phx-click="close-picker">閉じる</.button>
           </div>
         </div>
@@ -349,6 +400,15 @@ defmodule AntPressWeb.ArticleLive.Form do
      |> assign(:category_options, category_options(scope))
      |> assign(:picker_open?, false)
      |> assign(:images, [])
+     # サムネイルは 1 枚なので max_entries: 1。
+     # 上げたものをそのままサムネイルに設定する（→ handle_thumbnail_progress/3）
+     |> allow_upload(:thumbnail,
+       accept: Image.extensions(),
+       max_entries: 1,
+       max_file_size: Image.max_byte_size(),
+       auto_upload: true,
+       progress: &handle_thumbnail_progress/3
+     )
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -399,6 +459,14 @@ defmodule AntPressWeb.ArticleLive.Form do
      |> assign(:picker_open?, true)}
   end
 
+  # live_file_input はフォームの phx-change を要求する。
+  # 検証は allow_upload と Media 側が行う
+  @impl true
+  def handle_event("validate-thumbnail-upload", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("noop", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("close-picker", _params, socket) do
     {:noreply, assign(socket, :picker_open?, false)}
@@ -424,6 +492,45 @@ defmodule AntPressWeb.ArticleLive.Form do
      |> assign(:thumbnail, nil)
      |> put_form_change(:thumbnail_image_id, nil)}
   end
+
+  # アップロードが終わったらそのままサムネイルに設定してモーダルを閉じる。
+  # 「サムネイルを選ぶ」ために開いたモーダルなので、上げた画像を使う意図は明確
+  defp handle_thumbnail_progress(:thumbnail, entry, socket) do
+    if entry.done? do
+      scope = socket.assigns.current_user
+
+      result =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          {:ok, Media.create_image(scope, %{filename: entry.client_name, body: File.read!(path)})}
+        end)
+
+      case result do
+        {:ok, image} ->
+          {:noreply,
+           socket
+           |> assign(:thumbnail, image)
+           |> assign(:images, Media.list_images(scope))
+           |> assign(:picker_open?, false)
+           |> put_form_change(:thumbnail_image_id, image.id)
+           |> put_flash(:info, "画像をアップロードしてサムネイルに設定しました")}
+
+        {:error, reason} ->
+          {:noreply,
+           put_flash(socket, :error, "#{entry.client_name}: #{MediaError.message(reason)}")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp upload_error_message(:too_large),
+    do: "ファイルサイズが上限を超えています（#{div(Image.max_byte_size(), 1_000_000)}MB まで）"
+
+  defp upload_error_message(:not_accepted),
+    do: "対応していない画像形式です（JPEG / PNG / GIF / WebP）"
+
+  defp upload_error_message(:too_many_files), do: "一度にアップロードできるのは 1 件までです"
+  defp upload_error_message(other), do: "アップロードに失敗しました（#{inspect(other)}）"
 
   defp save_article(socket, :new, attrs) do
     case Blog.create_article(socket.assigns.current_user, attrs) do

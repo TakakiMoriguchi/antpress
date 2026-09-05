@@ -12,6 +12,7 @@ defmodule AntPressWeb.ImageLive.Index do
   use AntPressWeb, :live_view
 
   alias AntPress.Media
+  alias AntPressWeb.MediaError
   alias AntPress.Media.Image
 
   # 一度に選べる件数。ブラウザからの同時アップロードを増やしすぎない
@@ -212,7 +213,7 @@ defmodule AntPressWeb.ImageLive.Index do
          |> stream_insert(:images, image)}
 
       {:error, changeset} ->
-        {:noreply, put_flash(socket, :error, changeset_message(changeset))}
+        {:noreply, put_flash(socket, :error, MediaError.message(changeset))}
     end
   end
 
@@ -259,31 +260,11 @@ defmodule AntPressWeb.ImageLive.Index do
            |> stream_insert(:images, image, at: 0)}
 
         {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "#{entry.client_name}: #{error_message(reason)}")}
+          {:noreply,
+           put_flash(socket, :error, "#{entry.client_name}: #{MediaError.message(reason)}")}
       end
     else
       {:noreply, socket}
-    end
-  end
-
-  defp error_message(:unsupported_format),
-    do: "対応していない画像形式です（JPEG / PNG / GIF / WebP）"
-
-  defp error_message({:storage, _reason}),
-    do: "保存先への書き込みに失敗しました。しばらくしてからもう一度お試しください"
-
-  defp error_message(%Ecto.Changeset{} = changeset), do: changeset_message(changeset)
-
-  # 画像アップロードはフォームに繋いでいないので、changeset のエラーは
-  # フラッシュ用に 1 文へ畳む
-  defp changeset_message(%Ecto.Changeset{} = changeset) do
-    changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, opts} -> translate_error({msg, opts}) end)
-    |> Enum.flat_map(fn {_field, messages} -> messages end)
-    |> Enum.join("。")
-    |> case do
-      "" -> "保存できませんでした"
-      message -> message
     end
   end
 
