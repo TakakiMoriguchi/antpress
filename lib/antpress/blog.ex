@@ -4,6 +4,7 @@ defmodule AntPress.Blog do
   """
 
   import Ecto.Query, warn: false
+  require Logger
   import Ecto.Changeset, only: [fetch_change: 2, add_error: 3]
   alias AntPress.Repo
 
@@ -244,16 +245,54 @@ defmodule AntPress.Blog do
 
   @doc """
   記事を作成する。
+
+  ⚠️ アドレス（`slug`）はシステムが割り当てる。attrs から渡しても無視される
+  （→ `AntPress.Blog.Article`）。
   """
   def create_article(%Scope{} = scope, attrs) do
-    with {:ok, %Article{} = article} <-
-           %Article{}
-           |> Article.changeset(attrs, scope)
-           |> validate_scoped_associations(scope)
-           |> Repo.insert() do
+    with {:ok, %Article{} = article} <- insert_article(scope, attrs, 3) do
       broadcast_article(scope, {:created, article})
       {:ok, Repo.preload(article, [:category, :thumbnail_image])}
     end
+  end
+
+  # アドレスは 64 ビットの乱数なので衝突はまず起きないが、起きた場合に
+  # ユーザーが直す手立てがない（入力欄が無いため）。**黙って作り直す。**
+  defp insert_article(scope, attrs, attempts_left) do
+    result =
+      %Article{}
+      |> Article.changeset(attrs, scope)
+      |> validate_scoped_associations(scope)
+      |> Repo.insert()
+
+    case result do
+      {:error, changeset} when attempts_left > 1 ->
+        if slug_taken?(changeset) do
+          Logger.warning("記事アドレスが衝突しました。作り直します client_id=#{scope.client.id}")
+          insert_article(scope, attrs, attempts_left - 1)
+        else
+          result
+        end
+
+      _ ->
+        result
+    end
+  end
+
+  # `unique_constraint([:client_id, :slug])` は**先頭のフィールド**
+  # （`:client_id`）にエラーを付ける。索引名まで見て、将来 client_id に
+  # 別の一意制約が増えても誤って作り直さないようにする。
+  # （実物の形: `{:client_id, {msg, [constraint: :unique, constraint_name: "..."]}}`）
+  @slug_index "blog_articles_client_id_slug_index"
+
+  defp slug_taken?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {:client_id, {_msg, opts}} ->
+        opts[:constraint] == :unique and opts[:constraint_name] == @slug_index
+
+      _ ->
+        false
+    end)
   end
 
   @doc """

@@ -369,6 +369,11 @@ erDiagram
   公開なのに `published_at` が null だと配信条件
   （`published_at <= now()`）に永久に一致せず、**表示されない記事**になる。
   気付きにくい沈黙バグなので DB で禁止する
+- ⚠️ **`slug` はシステムが生成する。ユーザーは指定も変更もできない**
+  （→ `DECISIONS.md` 3.2）。作成時に Base32 の 13 文字（64 ビット）を割り当て、
+  `changeset` は `slug` を cast しない。衝突時は
+  `AntPress.Blog.create_article/2` が作り直す（入力欄が無いため、
+  ユーザーには直す手段がない）
 - ⚠️ `category_id` / `thumbnail_image_id` が**同じクライアントのものか**は
   外部キー制約では守れない（「存在するか」しか見ない）。
   `AntPress.Blog.validate_scoped_associations/2` で検証する。

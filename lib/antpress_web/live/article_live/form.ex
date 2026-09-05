@@ -17,6 +17,11 @@ defmodule AntPressWeb.ArticleLive.Form do
   **要素ごと差し替えてエディタを作り直させる**ため。`ignore` は中身を
   更新しないので、id が同じままだと前の記事の本文が残る。
 
+  ## アドレス（`slug`）の入力欄は出さない
+
+  システムが決めて以後変えない（→ `AntPress.Blog.Article`）。
+  編集画面では確認用に読み取り専用で表示する。
+
   ## 522KB のエディタを全ページに読ませない
 
   Toast UI は `app.js` にバンドルせず `priv/static/vendor/` から読む。
@@ -53,17 +58,15 @@ defmodule AntPressWeb.ArticleLive.Form do
 
       <.form for={@form} id="article-form" phx-change="validate" phx-submit="save">
         <.input field={@form[:title]} type="text" label="タイトル" />
-        <.input
-          field={@form[:slug]}
-          type="text"
-          label="記事のアドレス"
-          placeholder="new-menu-2026"
-        />
-        <p class="mt-1 text-sm text-base-content/60">
-          サイトでこの記事を開くときのアドレスの、いちばん後ろの部分です。<br />
-          例：<code class="text-xs">https://あなたのサイト/blog/<strong>new-menu-2026</strong></code><br />
-          半角の英字（小文字）・数字・ハイフンが使えます。日本語や記号は使えません。
-        </p>
+        <%!-- ⚠️ アドレスは入力させない。システムが決めて以後変えない
+              （→ AntPress.Blog.Article の説明） --%>
+        <div :if={@article.slug} class="mt-4">
+          <span class="label">記事のアドレス</span>
+          <p class="mt-1 font-mono text-sm">{@article.slug}</p>
+          <p class="mt-1 text-sm text-base-content/60">
+            サイトでこの記事を開くときのアドレスです。<br /> 公開後に変わると既存のリンクが開けなくなるため、自動で決まり、変更できません。
+          </p>
+        </div>
 
         <div class="mt-4">
           <label class="label" for="article-editor-root">本文</label>

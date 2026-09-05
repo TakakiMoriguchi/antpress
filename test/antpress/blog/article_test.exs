@@ -23,7 +23,6 @@ defmodule AntPress.Blog.ArticleTest do
       assert {:ok, %Article{} = article} =
                Blog.create_article(scope, %{
                  title: "新メニューのお知らせ",
-                 slug: "new-menu",
                  body: "# 見出し\n\n本文です。"
                })
 
@@ -65,44 +64,87 @@ defmodule AntPress.Blog.ArticleTest do
     end
 
     test "本文が空でも作成できる（下書き）", %{scope: scope} do
-      assert {:ok, article} = Blog.create_article(scope, %{title: "書きかけ", slug: "wip"})
+      assert {:ok, article} = Blog.create_article(scope, %{title: "書きかけ"})
 
       assert article.body == nil
       assert article.body_html == nil
     end
 
-    test "タイトルとアドレスは必須", %{scope: scope} do
+    test "タイトルは必須", %{scope: scope} do
       assert {:error, changeset} = Blog.create_article(scope, %{})
 
       assert "can't be blank" in errors_on(changeset).title
-      assert "can't be blank" in errors_on(changeset).slug
+      # アドレスはシステムが入れるので未入力にはならない
+      refute Map.has_key?(errors_on(changeset), :slug)
+    end
+  end
+
+  describe "⚠️ アドレス（slug）はシステムが決める" do
+    test "作成時に自動で割り当てられる", %{scope: scope} do
+      article = article_fixture(scope)
+
+      assert article.slug =~ ~r/^[a-z2-7]{13}$/
     end
 
-    test "アドレスの形式を検証する", %{scope: scope} do
-      assert {:error, changeset} = Blog.create_article(scope, %{title: "題", slug: "日本語"})
+    test "記事ごとに異なる", %{scope: scope} do
+      slugs = for _ <- 1..20, do: article_fixture(scope).slug
 
-      assert errors_on(changeset).slug != []
+      assert length(Enum.uniq(slugs)) == 20
     end
 
-    test "アドレスはクライアント単位で一意", %{scope: scope} do
-      article_fixture(scope, %{slug: "duplicated"})
+    test "attrs から指定しても無視される", %{scope: scope} do
+      # 画面には入力欄が無いが、リクエストは偽装できる
+      {:ok, article} = Blog.create_article(scope, %{title: "題", slug: "my-custom-slug"})
 
-      assert {:error, changeset} =
-               Blog.create_article(scope, %{title: "別記事", slug: "duplicated"})
-
-      assert "このアドレスは既に使われています" in errors_on(changeset).client_id
+      refute article.slug == "my-custom-slug"
     end
 
-    test "別クライアントなら同じアドレスを使える", %{scope: scope} do
-      article_fixture(scope, %{slug: "news"})
-      other_scope = Scope.for_user(user_fixture())
+    test "⚠️ 更新では変わらない（既存の URL を壊さない）", %{scope: scope} do
+      article = article_fixture(scope)
 
-      assert {:ok, _} = Blog.create_article(other_scope, %{title: "題", slug: "news"})
+      {:ok, updated} =
+        Blog.update_article(scope, article, %{title: "題を変更", slug: "new-slug"})
+
+      assert updated.slug == article.slug
+    end
+
+    test "公開後も変わらない", %{scope: scope} do
+      article = published_article_fixture(scope)
+
+      {:ok, updated} = Blog.update_article(scope, article, %{slug: "changed"})
+
+      assert updated.slug == article.slug
+    end
+
+    test "⚠️ 衝突時に作り直せるよう、一意制約のエラーの形を固定する", %{scope: scope} do
+      # AntPress.Blog.insert_article/3 はこの形を見て作り直す。
+      # 索引名やエラーの付くフィールドが変わると、衝突が
+      # ユーザーに直せないエラーとして表に出る
+      first = article_fixture(scope)
+
+      changeset =
+        %Article{}
+        |> Article.changeset(%{title: "衝突"}, scope)
+        |> Ecto.Changeset.put_change(:slug, first.slug)
+
+      assert {:error, %Ecto.Changeset{errors: errors}} = Repo.insert(changeset)
+
+      assert {:client_id, {_msg, opts}} = List.keyfind(errors, :client_id, 0)
+      assert opts[:constraint] == :unique
+      assert opts[:constraint_name] == "blog_articles_client_id_slug_index"
+    end
+
+    test "別クライアント間では重複しうる（一意性はクライアント単位）", %{scope: scope} do
+      # グローバル一意にはしない（→ docs/DATA-MODEL.md 1.3）
+      mine = article_fixture(scope)
+      other = article_fixture(Scope.for_user(user_fixture()))
+
+      assert mine.slug != other.slug
     end
 
     test "公開にすると published_at が入る", %{scope: scope} do
       assert {:ok, article} =
-               Blog.create_article(scope, %{title: "題", slug: "s", status: :published})
+               Blog.create_article(scope, %{title: "題", status: :published})
 
       assert article.published_at != nil
       assert DateTime.diff(DateTime.utc_now(), article.published_at) < 5
@@ -114,7 +156,6 @@ defmodule AntPress.Blog.ArticleTest do
       assert {:ok, article} =
                Blog.create_article(scope, %{
                  title: "題",
-                 slug: "s",
                  status: :published,
                  published_at: future
                })
@@ -131,7 +172,6 @@ defmodule AntPress.Blog.ArticleTest do
       assert {:error, changeset} =
                Blog.create_article(scope, %{
                  title: "題",
-                 slug: "s",
                  category_id: other_category.id
                })
 
@@ -144,7 +184,6 @@ defmodule AntPress.Blog.ArticleTest do
       assert {:error, changeset} =
                Blog.create_article(scope, %{
                  title: "題",
-                 slug: "s",
                  thumbnail_image_id: other_image.id
                })
 
@@ -168,7 +207,6 @@ defmodule AntPress.Blog.ArticleTest do
       assert {:ok, article} =
                Blog.create_article(scope, %{
                  title: "題",
-                 slug: "s",
                  category_id: category.id,
                  thumbnail_image_id: image.id
                })

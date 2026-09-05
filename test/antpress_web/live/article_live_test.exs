@@ -30,7 +30,7 @@ defmodule AntPressWeb.ArticleLiveTest do
     end
 
     test "記事とその状態を表示する", %{conn: conn, scope: scope} do
-      article_fixture(scope, %{title: "下書きの記事", slug: "draft-one"})
+      draft = article_fixture(scope, %{title: "下書きの記事"})
       published_article_fixture(scope, %{title: "公開した記事"})
       scheduled_article_fixture(scope, %{title: "予約した記事"})
 
@@ -39,7 +39,7 @@ defmodule AntPressWeb.ArticleLiveTest do
       assert html =~ "下書きの記事"
       assert html =~ "公開した記事"
       assert html =~ "予約した記事"
-      assert html =~ "/draft-one"
+      assert html =~ "/#{draft.slug}"
       # 予約は専用ステータスではないが表示は分ける
       assert html =~ "下書き"
       assert html =~ "予約"
@@ -142,10 +142,11 @@ defmodule AntPressWeb.ArticleLiveTest do
 
       assert html =~ "記事を書く"
       assert html =~ "タイトル"
-      # ⚠️「スラッグ」は WordPress 用語で店舗オーナーに通じない
-      assert html =~ "記事のアドレス"
-      refute html =~ "スラッグ"
       assert html =~ "サムネイル"
+      # ⚠️「スラッグ」は WordPress 用語で店舗オーナーに通じない
+      refute html =~ "スラッグ"
+      # 新規作成時はアドレスがまだ無いので表示しない
+      refute html =~ "記事のアドレス"
     end
 
     test "⚠️ エディタに phx-update=\"ignore\" が付いている", %{conn: conn} do
@@ -194,7 +195,6 @@ defmodule AntPressWeb.ArticleLiveTest do
 
       params = %{
         "title" => "新メニューのお知らせ",
-        "slug" => "new-menu",
         "body" => "# 見出し\n\n本文です。",
         "body_format" => "markdown",
         "status" => "draft"
@@ -217,11 +217,22 @@ defmodule AntPressWeb.ArticleLiveTest do
 
       html =
         lv
-        |> form("#article-form", article: %{"title" => "", "slug" => "日本語"})
+        |> form("#article-form", article: %{"title" => ""})
         |> render_submit()
 
       assert html =~ "can&#39;t be blank" or html =~ "can't be blank"
-      assert html =~ "半角の英字（小文字）・数字・ハイフンだけが使えます"
+    end
+
+    test "⚠️ アドレスの入力欄を出さず、編集画面では読み取り専用で見せる", %{conn: conn, scope: scope} do
+      # 公開後に URL が変わると既存のリンクが 404 になるため編集させない
+      article = article_fixture(scope)
+
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/#{article}/edit")
+
+      assert html =~ "記事のアドレス"
+      assert html =~ article.slug
+      assert html =~ "自動で決まり、変更できません"
+      refute html =~ ~s(name="article[slug]")
     end
 
     test "既存記事を編集画面に読み込む", %{conn: conn, scope: scope} do
@@ -244,7 +255,7 @@ defmodule AntPressWeb.ArticleLiveTest do
 
       html =
         render_submit(lv, "save", %{
-          "article" => %{"title" => "新しいタイトル", "slug" => article.slug, "body" => "## 改訂"}
+          "article" => %{"title" => "新しいタイトル", "body" => "## 改訂"}
         })
 
       assert html =~ "記事を保存しました"
@@ -308,7 +319,7 @@ defmodule AntPressWeb.ArticleLiveTest do
       render_click(lv, "select-thumbnail", %{"id" => image.id})
 
       render_submit(lv, "save", %{
-        "article" => %{"title" => "題", "slug" => "s", "thumbnail_image_id" => image.id}
+        "article" => %{"title" => "題", "thumbnail_image_id" => image.id}
       })
 
       assert [article] = Blog.list_articles(scope)

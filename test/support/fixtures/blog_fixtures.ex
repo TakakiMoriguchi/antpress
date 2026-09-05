@@ -21,10 +21,11 @@ defmodule AntPress.BlogFixtures do
     category
   end
 
-  def unique_article_slug, do: "article-#{System.unique_integer([:positive])}"
-
   @doc """
   記事を生成する。既定は下書き。
+
+  ⚠️ アドレス（`slug`）は渡せない。システムが割り当てる
+  （→ `AntPress.Blog.Article`）。
 
   公開済みにしたいときは `%{status: :published}`、
   予約投稿にしたいときは `published_at` に未来の日時を渡す。
@@ -33,7 +34,6 @@ defmodule AntPress.BlogFixtures do
     attrs =
       Enum.into(attrs, %{
         title: "新メニューのお知らせ",
-        slug: unique_article_slug(),
         body: "# 見出し\n\n本文です。"
       })
 

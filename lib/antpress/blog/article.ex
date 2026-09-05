@@ -20,6 +20,23 @@ defmodule AntPress.Blog.Article do
   `body_html` は配信用にレンダリングした結果（→ `AntPress.Blog.Markdown`）。
   **キャッシュなので陳腐化する**（→ `docs/DATA-MODEL.md` 5.4）。
 
+  ## ⚠️ `slug`（記事のアドレス）はシステムが決める。ユーザーは触れない
+
+  作成時にランダムな文字列を割り当て、**以後変更できない。** 画面にも
+  入力欄を出さない（→ `docs/DECISIONS.md` 3.2）。
+
+  理由は 2 つ。
+
+  1. **URL を変えないことが SEO 上いちばん重要。** URL 内の語がランキングに
+     効く度合いはごく小さい一方、公開後に URL が変わると既存のリンクが
+     404 になり、蓄積された評価も失われる。HP は SSG でリダイレクトを
+     張る仕組みもない。**編集できなければこの事故は起きない**
+  2. **想定ユーザー（店舗オーナー）に半角英字を考えさせない。**
+     効果がほぼ無い項目のために入力を求めていた
+
+  ⚠️ 代償: URL が意味を持たないので、共有されたときに内容が分からず、
+  検索結果でのクリック率もわずかに落ちる。**1 の利益の方が大きいと判断した。**
+
   ## 予約投稿に専用ステータスを作らない
 
   `status = :published` かつ `published_at` が未来。配信条件を
@@ -89,9 +106,9 @@ defmodule AntPress.Blog.Article do
   """
   def changeset(article, attrs, client_scope) do
     article
+    # ⚠️ `slug` は cast しない。システムが決める（→ モジュールの説明）
     |> cast(attrs, [
       :title,
-      :slug,
       :body_format,
       :body,
       :category_id,
@@ -99,6 +116,7 @@ defmodule AntPress.Blog.Article do
       :status,
       :published_at
     ])
+    |> put_slug()
     |> validate_required([:title, :slug])
     |> validate_length(:title, max: 120)
     |> validate_slug()
@@ -117,7 +135,32 @@ defmodule AntPress.Blog.Article do
     |> put_client_id(client_scope)
   end
 
-  # 記事 URL に使うので英小文字・数字・ハイフンのみ。
+  @doc """
+  記事のアドレスに使うランダムな文字列を作る。
+
+  Base32（小文字・パディングなし）の 13 文字 = 64 ビット。
+  1 クライアント内で衝突する確率は無視できるが、万一に備えて
+  `AntPress.Blog.create_article/2` が作り直す。
+
+  **完全な UUID（36 文字）にしていない理由**: 記事の URL は LINE や SNS に
+  貼られる。同じだけ推測不能でありながら短い方が実用的。
+  """
+  def generate_slug do
+    8
+    |> :crypto.strong_rand_bytes()
+    |> Base.encode32(case: :lower, padding: false)
+  end
+
+  # ⚠️ **作成時のみ**割り当てる。既存の記事では絶対に振り直さない
+  # （URL が変わると既存のリンクが 404 になる → モジュールの説明）
+  defp put_slug(changeset) do
+    case changeset.data.slug do
+      nil -> put_change(changeset, :slug, generate_slug())
+      _existing -> changeset
+    end
+  end
+
+  # 生成しているので通常は必ず通るが、保険として残す。
   # ⚠️ 画面では「スラッグ」と呼ばない。想定ユーザー（店舗オーナー）に
   #    通じない WordPress 用語なので「記事のアドレス」と表示する
   defp validate_slug(changeset) do
