@@ -111,21 +111,30 @@ defmodule AntPressWeb.ArticleLive.Form do
 
         <div class="mt-4">
           <span class="label">サムネイル</span>
-          <div class="mt-1 flex items-center gap-4">
+          <p class="text-sm text-base-content/60">記事の一覧や SNS に出る画像です。1 枚だけ設定できます。</p>
+          <div class="mt-2 flex items-center gap-4">
             <img
               :if={@thumbnail}
               src={Media.public_url(@thumbnail)}
               alt={@thumbnail.alt_text || ""}
               class="size-24 rounded bg-base-200 object-cover"
             />
-            <div :if={is_nil(@thumbnail)} class="size-24 rounded bg-base-200" aria-hidden="true" />
-            <div class="flex flex-col items-start gap-1">
-              <.button type="button" phx-click="open-picker">画像を選択</.button>
+            <div
+              :if={is_nil(@thumbnail)}
+              class="flex size-24 items-center justify-center rounded bg-base-200 text-xs text-base-content/50"
+            >
+              未設定
+            </div>
+            <div class="flex items-center gap-2">
+              <%!-- 1 枚しか持てないので、設定済みなら「追加」ではなく「変更」 --%>
+              <.button type="button" phx-click="open-picker">
+                {if @thumbnail, do: "画像を変更", else: "画像を選択"}
+              </.button>
               <.button
                 :if={@thumbnail}
                 type="button"
                 phx-click="clear-thumbnail"
-                class="btn-ghost btn-sm"
+                class="btn-outline btn-sm"
               >
                 外す
               </.button>

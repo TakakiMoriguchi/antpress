@@ -109,7 +109,7 @@ defmodule AntPressWeb.ImageLive.Index do
                 class="input input-sm w-full"
               />
               <%!-- アイコンだけだと保存ボタンだと分からない（実際に分からなかった） --%>
-              <.button class="btn btn-sm">保存</.button>
+              <.button class="btn-sm">保存</.button>
             </div>
           </form>
 

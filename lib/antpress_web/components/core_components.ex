@@ -50,6 +50,11 @@ defmodule AntPressWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+
+  attr :autoclose, :boolean,
+    default: true,
+    doc: "3 秒後に自動で閉じる。接続断の通知など、状態が続くものは false にする"
+
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
@@ -62,6 +67,7 @@ defmodule AntPressWeb.CoreComponents do
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+      phx-hook={@autoclose && ".AutoDismiss"}
       role="alert"
       class="toast toast-bottom toast-end z-50"
       {@rest}
@@ -83,6 +89,31 @@ defmodule AntPressWeb.CoreComponents do
         </button>
       </div>
     </div>
+
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".AutoDismiss">
+      // トーストを一定時間で閉じる。
+      // 閉じる処理そのものは要素の phx-click（hide ＋ lv:clear-flash）を
+      // そのまま使う。同じ動きを 2 通り書かないため
+      const DISMISS_AFTER = 3000
+
+      export default {
+        mounted() { this.schedule() },
+        updated() { this.schedule() },
+        destroyed() { clearTimeout(this.timer) },
+
+        schedule() {
+          clearTimeout(this.timer)
+
+          // 読んでいる最中に消えないよう、カーソルが乗っている間は待つ
+          if (this.el.matches(":hover")) {
+            this.el.addEventListener("mouseleave", () => this.schedule(), {once: true})
+            return
+          }
+
+          this.timer = setTimeout(() => this.el.click(), DISMISS_AFTER)
+        },
+      }
+    </script>
     """
   end
 
@@ -106,10 +137,16 @@ defmodule AntPressWeb.CoreComponents do
   def button(%{rest: rest} = assigns) do
     variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
 
+    # ⚠️ `class` を渡されても基底の `btn` は必ず残す。
+    #
+    # 生成時は `assign_new` で「class があれば既定を使わない」形だったため、
+    # `class="btn-ghost btn-sm"` のように渡すと `btn` ごと消え、
+    # **ボタンに見えないただの文字**になっていた（実際にそうなった）。
     assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+      assign(assigns, :class, [
+        "btn",
+        assigns[:class] || Map.fetch!(variants, assigns[:variant])
+      ])
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""

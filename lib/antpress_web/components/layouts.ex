@@ -121,9 +121,11 @@ defmodule AntPressWeb.Layouts do
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
+      <%!-- ⚠️ 接続断の通知は自動で閉じない。状態が続いている間は出したまま --%>
       <.flash
         id="client-error"
         kind={:error}
+        autoclose={false}
         title={gettext("We can't find the internet")}
         phx-disconnected={
           show(".phx-client-error #client-error")
@@ -139,6 +141,7 @@ defmodule AntPressWeb.Layouts do
       <.flash
         id="server-error"
         kind={:error}
+        autoclose={false}
         title={gettext("Something went wrong!")}
         phx-disconnected={
           show(".phx-server-error #server-error")
