@@ -146,7 +146,7 @@ defmodule AntPressWeb.ImageLiveTest do
     end
   end
 
-  describe "代替テキストの設定" do
+  describe "画像の説明（代替テキスト）の設定" do
     test "保存できる", %{conn: conn, scope: scope} do
       image = image_fixture(scope, %{filename: "gaikan.png"})
 
@@ -157,7 +157,7 @@ defmodule AntPressWeb.ImageLiveTest do
         |> element("form[phx-submit='save-alt']")
         |> render_submit(%{"image_id" => image.id, "alt_text" => "店舗の外観"})
 
-      assert html =~ "代替テキストを保存しました"
+      assert html =~ "画像の説明を保存しました"
       assert Media.get_image!(scope, image.id).alt_text == "店舗の外観"
     end
 

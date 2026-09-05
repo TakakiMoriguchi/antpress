@@ -45,9 +45,56 @@ defmodule AntPressWeb.Layouts do
   slot :inner_block, required: true
 
   def app(assigns) do
-    # ヘッダー（antpress のナビゲーション）は root.html.heex にある。
+    # ⚠️ ナビは **root.html.heex ではなくここ**に置く。
+    #
+    # root.html.heex は conn の assign を見るが、`current_user` と
+    # `current_developer` を入れる plug は**どちらもすべてのリクエストで走る。**
+    # そのため両方でログインしていると、クライアント側の画面でも
+    # developer のナビが出て、記事・カテゴリ・画像へ移動できなくなる
+    # （実際にそうなった）。
+    #
+    # ここなら「どちらの assign を渡されたか」＝ページ自身がどちら側かで決まる。
+    #
     # Phoenix の既定ヘッダー（ロゴ・Website・GitHub・Get Started）は削除した。
     ~H"""
+    <nav
+      :if={@current_developer || @current_user}
+      class="navbar border-b border-base-300 px-4 sm:px-6 lg:px-8"
+    >
+      <div class="flex-1">
+        <.link
+          :if={@current_developer}
+          navigate={~p"/clients"}
+          class="text-lg font-semibold"
+        >
+          antpress
+        </.link>
+        <.link
+          :if={@current_user}
+          navigate={~p"/client/articles"}
+          class="text-lg font-semibold"
+        >
+          antpress
+        </.link>
+      </div>
+
+      <div class="flex-none">
+        <ul class="menu menu-horizontal items-center gap-1">
+          <%= if @current_developer do %>
+            <li><.link navigate={~p"/clients"}>クライアント</.link></li>
+            <li><.link href={~p"/developers/settings"}>アカウント</.link></li>
+            <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
+          <% else %>
+            <li><.link navigate={~p"/client/articles"}>記事</.link></li>
+            <li><.link navigate={~p"/client/categories"}>カテゴリ</.link></li>
+            <li><.link navigate={~p"/client/images"}>画像</.link></li>
+            <li><.link href={~p"/client/settings"}>アカウント</.link></li>
+            <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
+          <% end %>
+        </ul>
+      </div>
+    </nav>
+
     <main class="px-4 py-8 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-6xl space-y-4">
         {render_slot(@inner_block)}

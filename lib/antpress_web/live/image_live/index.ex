@@ -2,7 +2,7 @@ defmodule AntPressWeb.ImageLive.Index do
   @moduledoc """
   画像管理（→ `docs/SCREENS.md` C6）。
 
-  アップロード・一覧・alt 設定・削除を **1 画面**に収めている。
+  アップロード・一覧・説明文（alt）の設定・削除を **1 画面**に収めている。
   カテゴリのように一覧／新規／編集を分けていないのは、画像の操作が
   「上げる」「alt を書く」「消す」しかなく、画面を移動する意味がないため。
 
@@ -24,7 +24,8 @@ defmodule AntPressWeb.ImageLive.Index do
       <.header>
         画像
         <:subtitle>
-          記事や各ページで使う画像を管理します。JPEG / PNG / GIF / WebP、1 ファイル {@max_mb}MB まで。
+          記事や各ページで使う画像を管理します。JPEG / PNG / GIF / WebP、1 ファイル {@max_mb}MB まで。<br />
+          「画像の説明」を入れておくと、画像が表示できないときに代わりの文章として出ます。検索にも使われます。
         </:subtitle>
       </.header>
 
@@ -91,20 +92,24 @@ defmodule AntPressWeb.ImageLive.Index do
           <p class="truncate text-sm font-medium" title={image.filename}>{image.filename}</p>
           <p class="text-xs text-base-content/60">{meta_label(image)}</p>
 
-          <form phx-submit="save-alt" class="flex items-center gap-1">
+          <%!-- ⚠️「代替テキスト」は専門用語なので画面には出さない
+                （→ CLAUDE.md「画面に技術用語を出さない」） --%>
+          <form phx-submit="save-alt">
             <input type="hidden" name="image_id" value={image.id} />
-            <input
-              type="text"
-              name="alt_text"
-              value={image.alt_text}
-              maxlength="200"
-              placeholder="代替テキスト"
-              aria-label={"#{image.filename} の代替テキスト"}
-              class="input input-sm w-full"
-            />
-            <button class="btn btn-sm btn-ghost" aria-label="代替テキストを保存">
-              <.icon name="hero-check" class="size-4" />
-            </button>
+            <label class="label text-xs" for={"image-alt-#{image.id}"}>画像の説明</label>
+            <div class="mt-1 flex items-center gap-1">
+              <input
+                type="text"
+                id={"image-alt-#{image.id}"}
+                name="alt_text"
+                value={image.alt_text}
+                maxlength="200"
+                placeholder="例: 店舗の外観"
+                class="input input-sm w-full"
+              />
+              <%!-- アイコンだけだと保存ボタンだと分からない（実際に分からなかった） --%>
+              <.button class="btn btn-sm">保存</.button>
+            </div>
           </form>
 
           <div class="flex items-center justify-between text-sm">
@@ -203,7 +208,7 @@ defmodule AntPressWeb.ImageLive.Index do
       {:ok, image} ->
         {:noreply,
          socket
-         |> put_flash(:info, "代替テキストを保存しました")
+         |> put_flash(:info, "画像の説明を保存しました")
          |> stream_insert(:images, image)}
 
       {:error, changeset} ->

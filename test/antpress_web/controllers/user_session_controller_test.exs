@@ -21,7 +21,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       assert redirected_to(conn) == ~p"/client/articles"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/client/articles")
       response = html_response(conn, 200)
 
       # ヘッダーはクライアント名を表示しない（→ root.html.heex）。
@@ -89,7 +89,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       assert redirected_to(conn) == ~p"/client/articles"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/client/articles")
       response = html_response(conn, 200)
 
       # ヘッダーはクライアント名を表示しない（→ root.html.heex）。
@@ -117,7 +117,7 @@ defmodule AntPressWeb.UserSessionControllerTest do
       assert Accounts.get_user!(user.id).confirmed_at
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/client/articles")
       response = html_response(conn, 200)
 
       # ヘッダーはクライアント名を表示しない（→ root.html.heex）。

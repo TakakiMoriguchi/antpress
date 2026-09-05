@@ -38,34 +38,9 @@
     </script>
   </head>
   <body>
-    <%= if @current_developer || @current_user do %>
-      <nav class="navbar border-b border-base-300 px-4 sm:px-6 lg:px-8">
-        <div class="flex-1">
-          <%= if @current_developer do %>
-            <.link navigate={~p"/clients"} class="text-lg font-semibold">antpress</.link>
-          <% else %>
-            <span class="text-lg font-semibold">antpress</span>
-          <% end %>
-        </div>
-
-        <div class="flex-none">
-          <ul class="menu menu-horizontal items-center gap-1">
-            <%= if @current_developer do %>
-              <li><.link navigate={~p"/clients"}>クライアント</.link></li>
-              <li><.link href={~p"/developers/settings"}>アカウント</.link></li>
-              <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
-            <% else %>
-              <li><.link navigate={~p"/client/articles"}>記事</.link></li>
-              <li><.link navigate={~p"/client/categories"}>カテゴリ</.link></li>
-              <li><.link navigate={~p"/client/images"}>画像</.link></li>
-              <li><.link href={~p"/client/settings"}>アカウント</.link></li>
-              <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
-            <% end %>
-          </ul>
-        </div>
-      </nav>
-    <% end %>
-
+    <%!-- ⚠️ ナビは Layouts.app にある（→ そちらの注記）。
+         ここに置くと、両方でログインしているときに
+         クライアント側の画面でも developer のナビが出る --%>
     {@inner_content}
   </body>
 </html>

@@ -21,10 +21,11 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       assert redirected_to(conn) == ~p"/clients"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/clients")
       response = html_response(conn, 200)
-      # ヘッダーは屋号を表示しない（→ root.html.heex）。
-      # ログイン成功はリダイレクト先とナビの存在で確認する
+      # ヘッダーは屋号を表示しない。ログイン成功はリダイレクト先と
+      # ナビの存在で確認する。⚠️ ナビは Layouts.app にあるので、
+      # それを使わない `/` ではなく実際の管理画面を見る
       assert response =~ "クライアント"
       assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"
@@ -88,10 +89,11 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       assert redirected_to(conn) == ~p"/clients"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/clients")
       response = html_response(conn, 200)
-      # ヘッダーは屋号を表示しない（→ root.html.heex）。
-      # ログイン成功はリダイレクト先とナビの存在で確認する
+      # ヘッダーは屋号を表示しない。ログイン成功はリダイレクト先と
+      # ナビの存在で確認する。⚠️ ナビは Layouts.app にあるので、
+      # それを使わない `/` ではなく実際の管理画面を見る
       assert response =~ "クライアント"
       assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"
@@ -115,10 +117,11 @@ defmodule AntPressWeb.DeveloperSessionControllerTest do
       assert Platform.get_developer!(developer.id).confirmed_at
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/clients")
       response = html_response(conn, 200)
-      # ヘッダーは屋号を表示しない（→ root.html.heex）。
-      # ログイン成功はリダイレクト先とナビの存在で確認する
+      # ヘッダーは屋号を表示しない。ログイン成功はリダイレクト先と
+      # ナビの存在で確認する。⚠️ ナビは Layouts.app にあるので、
+      # それを使わない `/` ではなく実際の管理画面を見る
       assert response =~ "クライアント"
       assert response =~ "ログアウト"
       assert response =~ ~p"/developers/settings"

@@ -383,6 +383,19 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
 ```
 
+### ⚠️ ナビは `root.html.heex` ではなく `Layouts.app` に置く
+
+`current_user` と `current_developer` を入れる plug は**どちらも全リクエストで
+走る。** `root.html.heex` は conn の assign を見るので、両方でログインしていると
+**クライアント側の画面でも developer のナビが出て、記事・カテゴリ・画像へ
+移動できなくなる**（実際にそうなった）。
+
+`Layouts.app` なら「どちらの assign を渡されたか」＝ページ自身がどちら側かで
+決まる。出し分けは `test/antpress_web/live/navigation_test.exs` で固定してある。
+
+⚠️ `/`（`page_html/home.html.heex`）は Phoenix の初期テンプレートのままで
+`Layouts.app` を使っていない。ログイン中はそれぞれの管理画面へリダイレクトする。
+
 ### ⚠️ 時系列で並べる一覧のテーブルは timestamps を `utc_datetime_usec` にする
 
 `images` と `blog_articles` がこれ。秒精度だと同一秒のレコードが同着になり、
@@ -411,6 +424,7 @@ WEB の知識は前提にできない。**WordPress 用語をそのまま出さ�
 | --- | --- | --- |
 | `blog_articles.slug` | **記事のアドレス** | ⚠️ **入力欄は出さない。**システム生成で変更不可（→ 下記） |
 | `blog_categories.slug` | **カテゴリのアドレス** | 同上 |
+| `images.alt_text` | **画像の説明** | 「代替テキスト」も専門用語 |
 | `clients.slug` | **識別名** | ⚠️ こちらは URL に使わない管理用の識別子。記事・カテゴリとは呼び方を分ける |
 
 - 「スラッグ」「パーマリンク」「エンドポイント」のような語を画面に出さない
@@ -418,3 +432,8 @@ WEB の知識は前提にできない。**WordPress 用語をそのまま出さ�
   （「半角の英字（小文字）・数字・ハイフン」＋ URL の実例）
 - **検証エラーの文言も同じ語彙に揃える。**
   ラベルが「記事のアドレス」なのにエラーが「スラッグが不正です」だと通じない
+- ⚠️ **ボタンをアイコンだけにしない。** チェックマークだけの保存ボタンは
+  「どうやって保存するのか分からない」と言われた。`aria-label` は
+  スクリーンリーダー用で、目で見ている人には何も伝わらない
+- ⚠️ **入力欄にラベルを付ける。** placeholder だけだと、入力した瞬間に
+  何の欄か分からなくなる
