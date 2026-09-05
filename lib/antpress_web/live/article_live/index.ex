@@ -29,7 +29,7 @@ defmodule AntPressWeb.ArticleLive.Index do
       </.header>
 
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div role="tablist" class="tabs tabs-box">
+        <div role="tablist" class="tabs tabs-box flex-wrap">
           <.link
             :for={{key, label} <- @filter_labels}
             role="tab"
@@ -45,7 +45,7 @@ defmodule AntPressWeb.ArticleLive.Index do
           id="article-search"
           phx-change="search"
           phx-submit="search"
-          class="flex items-center gap-2"
+          class="flex w-full items-center gap-2 sm:w-auto"
         >
           <input
             type="search"
@@ -54,7 +54,7 @@ defmodule AntPressWeb.ArticleLive.Index do
             placeholder="タイトルで検索"
             phx-debounce="300"
             aria-label="タイトルで検索"
-            class="input input-sm w-56"
+            class="input w-full sm:w-64"
           />
         </form>
       </div>
@@ -69,9 +69,10 @@ defmodule AntPressWeb.ArticleLive.Index do
             <tr>
               <th class="w-16"></th>
               <th>タイトル</th>
-              <th>カテゴリ</th>
+              <%!-- 狭い画面では主要な列だけ残す。横スクロールさせない --%>
+              <th class="hidden sm:table-cell">カテゴリ</th>
               <th>状態</th>
-              <th>公開日時</th>
+              <th class="hidden md:table-cell">公開日時</th>
               <th class="w-0"><span class="sr-only">操作</span></th>
             </tr>
           </thead>
@@ -100,11 +101,13 @@ defmodule AntPressWeb.ArticleLive.Index do
                 </.link>
                 <p class="text-xs text-base-content/60">/{article.slug}</p>
               </td>
-              <td class="text-sm">{category_label(article)}</td>
+              <td class="hidden text-sm sm:table-cell">{category_label(article)}</td>
               <td>
                 <span class={["badge badge-sm", state_class(article)]}>{state_label(article)}</span>
               </td>
-              <td class="text-sm whitespace-nowrap">{published_at_label(article)}</td>
+              <td class="hidden text-sm whitespace-nowrap md:table-cell">
+                {published_at_label(article)}
+              </td>
               <td class="whitespace-nowrap font-semibold">
                 <div class="flex gap-4">
                   <.link navigate={~p"/client/articles/#{article}/edit"}>編集</.link>

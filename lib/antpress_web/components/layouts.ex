@@ -63,15 +63,7 @@ defmodule AntPressWeb.Layouts do
     >
       <div class="flex-1">
         <.link
-          :if={@current_developer}
-          navigate={~p"/clients"}
-          class="text-lg font-semibold"
-        >
-          antpress
-        </.link>
-        <.link
-          :if={@current_user}
-          navigate={~p"/client/articles"}
+          navigate={if @current_developer, do: ~p"/clients", else: ~p"/client/articles"}
           class="text-lg font-semibold"
         >
           antpress
@@ -79,19 +71,25 @@ defmodule AntPressWeb.Layouts do
       </div>
 
       <div class="flex-none">
-        <ul class="menu menu-horizontal items-center gap-1">
-          <%= if @current_developer do %>
-            <li><.link navigate={~p"/clients"}>クライアント</.link></li>
-            <li><.link href={~p"/developers/settings"}>アカウント</.link></li>
-            <li><.link href={~p"/developers/log-out"} method="delete">ログアウト</.link></li>
-          <% else %>
-            <li><.link navigate={~p"/client/articles"}>記事</.link></li>
-            <li><.link navigate={~p"/client/categories"}>カテゴリ</.link></li>
-            <li><.link navigate={~p"/client/images"}>画像</.link></li>
-            <li><.link href={~p"/client/settings"}>アカウント</.link></li>
-            <li><.link href={~p"/client/log-out"} method="delete">ログアウト</.link></li>
-          <% end %>
+        <%!-- 広い画面は横並び --%>
+        <ul class="menu menu-horizontal hidden items-center gap-1 sm:flex">
+          <.nav_links items={nav_items(assigns)} />
         </ul>
+
+        <%!-- 狭い画面はまとめる。5 項目を横に並べると溢れる。
+              daisyUI の dropdown は :focus-within で開くので JS が要らず、
+              リンクを押してフォーカスが外れれば閉じる --%>
+        <div class="dropdown dropdown-end sm:hidden">
+          <div tabindex="0" role="button" class="btn btn-ghost" aria-label="メニュー">
+            <.icon name="hero-bars-3" class="size-6" />
+          </div>
+          <ul
+            tabindex="0"
+            class="menu dropdown-content z-50 mt-2 w-52 rounded-box border border-base-300 bg-base-100 p-2 shadow"
+          >
+            <.nav_links items={nav_items(assigns)} />
+          </ul>
+        </div>
       </div>
     </nav>
 
@@ -102,6 +100,38 @@ defmodule AntPressWeb.Layouts do
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  # ナビの項目。**定義はここだけ。** 広い画面用と狭い画面用で同じリストを
+  # 描画するので、片方だけ更新する事故が起きない
+  defp nav_items(%{current_developer: developer}) when not is_nil(developer) do
+    [
+      %{label: "クライアント", to: ~p"/clients", kind: :navigate},
+      %{label: "アカウント", to: ~p"/developers/settings", kind: :href},
+      %{label: "ログアウト", to: ~p"/developers/log-out", kind: :delete}
+    ]
+  end
+
+  defp nav_items(_assigns) do
+    [
+      %{label: "記事", to: ~p"/client/articles", kind: :navigate},
+      %{label: "カテゴリ", to: ~p"/client/categories", kind: :navigate},
+      %{label: "画像", to: ~p"/client/images", kind: :navigate},
+      %{label: "アカウント", to: ~p"/client/settings", kind: :href},
+      %{label: "ログアウト", to: ~p"/client/log-out", kind: :delete}
+    ]
+  end
+
+  attr :items, :list, required: true
+
+  defp nav_links(assigns) do
+    ~H"""
+    <li :for={item <- @items}>
+      <.link :if={item.kind == :navigate} navigate={item.to}>{item.label}</.link>
+      <.link :if={item.kind == :href} href={item.to}>{item.label}</.link>
+      <.link :if={item.kind == :delete} href={item.to} method="delete">{item.label}</.link>
+    </li>
     """
   end
 

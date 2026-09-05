@@ -402,6 +402,26 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
 ```
 
+### ⚠️ レスポンシブ（全ページ対応済み）
+
+client 側だけでなく admin / developer 側も含めて全ページ対応する。
+崩れやすい箇所は決まっているので、新しい画面でも同じ形にする。
+
+| 箇所 | やること |
+| --- | --- |
+| **表** | `.table` コンポーネントを使う（`overflow-x-auto` の囲みが入っている）。生の `<table>` を書くなら自分で囲む |
+| **表の列** | 副次的な列は `:col` の `class` に `"hidden sm:table-cell"` を渡して狭い画面で隠す。横スクロールに頼らない |
+| **見出し** | `.header` を使う（狭い画面でタイトルとボタンが縦に積まれる） |
+| **ナビ** | `Layouts.app` が担当。項目は `nav_items/1` の 1 箇所だけで定義する |
+| **横並び** | ボタンや画像を並べるところは `flex-wrap` を付ける |
+| **入力欄の幅** | `w-full sm:w-64` のように、狭い画面では全幅にする |
+
+- ⚠️ **Tailwind の任意値で `calc` を使うときは演算子をアンダースコアにする**
+  （`w-[calc(100vw_-_2rem)]`）。スペースのままだとクラスが生成されない
+- ⚠️ **エディタのプレビューは画面幅で切り替える。** `previewStyle: "vertical"`
+  のままだと狭い画面で本文とプレビューが半分ずつになって書けない
+- 構造は `test/antpress_web/responsive_test.exs` で固定してある
+
 ### ⚠️ ナビは `root.html.heex` ではなく `Layouts.app` に置く
 
 `current_user` と `current_developer` を入れる plug は**どちらも全リクエストで

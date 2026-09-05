@@ -112,7 +112,7 @@ defmodule AntPressWeb.ArticleLive.Form do
         <div class="mt-4">
           <span class="label">サムネイル</span>
           <p class="text-sm text-base-content/60">記事の一覧や SNS に出る画像です。1 枚だけ設定できます。</p>
-          <div class="mt-2 flex items-center gap-4">
+          <div class="mt-2 flex flex-wrap items-center gap-4">
             <img
               :if={@thumbnail}
               src={Media.public_url(@thumbnail)}
@@ -171,7 +171,7 @@ defmodule AntPressWeb.ArticleLive.Form do
           未来の日時を入れると、その日時になるまで公開されません（予約投稿）。<br /> 「下書き」のあいだは公開されないので、この欄は空のままで構いません。
         </p>
 
-        <footer class="mt-6 flex gap-2">
+        <footer class="mt-6 flex flex-wrap gap-2">
           <.button phx-disable-with="保存中..." variant="primary">保存</.button>
           <.button navigate={~p"/client/articles"}>キャンセル</.button>
         </footer>
@@ -324,13 +324,18 @@ defmodule AntPressWeb.ArticleLive.Form do
             // 読み込み中に別画面へ移動していたら組み立てない
             if (this.unmounted) return
 
+            // ⚠️ 狭い画面で previewStyle: "vertical"（本文とプレビューの
+            // 横並び）にすると、それぞれが半分の幅になって書けない。
+            // タブ切り替えにする
+            const wide = window.matchMedia("(min-width: 768px)").matches
+
             this.editor = new Editor({
               el: this.el.querySelector("#article-editor-root"),
-              height: "480px",
+              height: wide ? "480px" : "360px",
               language: "ja-JP",
               usageStatistics: false,
               initialEditType: this.el.dataset.mode,
-              previewStyle: "vertical",
+              previewStyle: wide ? "vertical" : "tab",
               initialValue: this.bodyInput.value || "",
               // 画像はサーバーへ送って URL を差し込む。
               // これを渡さないと Toast UI は画像を base64 で本文に埋める

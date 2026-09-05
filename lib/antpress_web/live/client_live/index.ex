@@ -25,7 +25,7 @@ defmodule AntPressWeb.ClientLive.Index do
         </:actions>
       </.header>
 
-      <div role="tablist" class="tabs tabs-box w-fit">
+      <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
         <.link
           :for={{key, label} <- @filter_labels}
           role="tab"
@@ -48,12 +48,17 @@ defmodule AntPressWeb.ClientLive.Index do
         row_click={fn {_id, client} -> JS.navigate(~p"/clients/#{client}") end}
       >
         <:col :let={{_id, client}} label="クライアント名">{client.name}</:col>
-        <:col :let={{_id, client}} label="識別名">{client.slug}</:col>
+        <%!-- 狭い画面では主要な列だけ残す --%>
+        <:col :let={{_id, client}} label="識別名" class="hidden sm:table-cell">
+          {client.slug}
+        </:col>
         <:col :let={{_id, client}} label="プラン">{plan_label(client.plan)}</:col>
-        <:col :let={{_id, client}} label="問い合わせ通知先">
+        <:col :let={{_id, client}} label="問い合わせ通知先" class="hidden lg:table-cell">
           {client.contact_notification_email}
         </:col>
-        <:col :let={{_id, client}} label="Webhook URL">{webhook_label(client.webhook_url)}</:col>
+        <:col :let={{_id, client}} label="Webhook URL" class="hidden lg:table-cell">
+          {webhook_label(client.webhook_url)}
+        </:col>
         <:col :let={{_id, client}} label="状態">{status_label(client.status)}</:col>
         <:action :let={{_id, client}}>
           <div class="sr-only">

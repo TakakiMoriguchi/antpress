@@ -23,7 +23,9 @@ defmodule AntPressWeb.CategoryLive.Index do
       >
         <:col :let={{_id, category}} label="カテゴリ名">{category.name}</:col>
         <:col :let={{_id, category}} label="アドレス">{category.slug}</:col>
-        <:col :let={{_id, category}} label="表示順">{category.position}</:col>
+        <:col :let={{_id, category}} label="表示順" class="hidden sm:table-cell">
+          {category.position}
+        </:col>
         <:action :let={{_id, category}}>
           <div class="sr-only">
             <.link navigate={~p"/client/categories/#{category}"}>詳細</.link>
