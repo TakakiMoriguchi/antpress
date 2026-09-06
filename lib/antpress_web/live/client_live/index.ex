@@ -25,12 +25,13 @@ defmodule AntPressWeb.ClientLive.Index do
         </:actions>
       </.header>
 
-      <div role="tablist" class="tabs tabs-box w-fit flex-wrap">
+      <%!-- 狭い画面では全幅・等分 --%>
+      <div role="tablist" class="tabs tabs-box w-full flex-wrap sm:w-fit">
         <.link
           :for={{key, label} <- @filter_labels}
           role="tab"
           patch={~p"/clients?#{filter_params(key)}"}
-          class={["tab", @filter == key && "tab-active"]}
+          class={["tab flex-1 sm:flex-none", @filter == key && "tab-active"]}
         >
           {label}
           <span class="ml-1 text-xs opacity-60">{@counts[key]}</span>

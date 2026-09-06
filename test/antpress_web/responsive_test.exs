@@ -65,7 +65,23 @@ defmodule AntPressWeb.ResponsiveTest do
     test "狭い画面ではタイトルとボタンを縦に積む", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/client/articles")
 
-      assert html =~ "flex flex-col items-start gap-3 sm:flex-row"
+      assert html =~ "flex flex-col gap-3 sm:flex-row"
+    end
+
+    test "⚠️ 狭い画面では主要ボタンを全幅にする", %{conn: conn} do
+      # 左に寄せて積むと幅がばらばらになって不格好（指摘があった）。
+      # items-start を付けないことで flex の既定（stretch）が効く
+      {:ok, _lv, html} = live(conn, ~p"/client/articles")
+
+      refute html =~ "flex flex-col items-start gap-3"
+      assert html =~ "flex flex-col gap-2 sm:flex-none sm:flex-row"
+    end
+
+    test "⚠️ 狭い画面では絞り込みタブを全幅・等分にする", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/client/articles")
+
+      assert html =~ "tabs tabs-box w-full flex-wrap sm:w-auto"
+      assert html =~ "tab flex-1 sm:flex-none"
     end
   end
 

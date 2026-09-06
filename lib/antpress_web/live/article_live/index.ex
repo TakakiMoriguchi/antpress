@@ -29,12 +29,13 @@ defmodule AntPressWeb.ArticleLive.Index do
       </.header>
 
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div role="tablist" class="tabs tabs-box flex-wrap">
+        <%!-- 狭い画面では全幅・等分。左に寄せると余白が間延びする --%>
+        <div role="tablist" class="tabs tabs-box w-full flex-wrap sm:w-auto">
           <.link
             :for={{key, label} <- @filter_labels}
             role="tab"
             patch={~p"/client/articles?#{query_params(key, @q)}"}
-            class={["tab", @filter == key && "tab-active"]}
+            class={["tab flex-1 sm:flex-none", @filter == key && "tab-active"]}
           >
             {label}
             <span class="ml-1 text-xs opacity-60">{@counts[key]}</span>

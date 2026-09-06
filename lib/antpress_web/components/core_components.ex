@@ -397,11 +397,13 @@ defmodule AntPressWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <%!-- 狭い画面ではタイトルとボタンを縦に積む。
-          横並びのままだと見出しが潰れる --%>
+    <%!-- ⚠️ 狭い画面ではタイトルとボタンを縦に積み、**ボタンは全幅**にする。
+          左に寄せて積むと幅がばらばらになって不格好（実際に指摘があった）。
+          `items-start` を付けないのがポイントで、flex の既定（stretch）が
+          効いてボタンが親の幅いっぱいに伸びる --%>
     <header class={[
       @actions != [] &&
-        "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
       "pb-4"
     ]}>
       <div>
@@ -412,7 +414,7 @@ defmodule AntPressWeb.CoreComponents do
           {render_slot(@subtitle)}
         </p>
       </div>
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div class="flex flex-col gap-2 sm:flex-none sm:flex-row">{render_slot(@actions)}</div>
     </header>
     """
   end
