@@ -49,6 +49,8 @@ defmodule AntPressWeb.Router do
     live_session :require_authenticated_developer,
       on_mount: [{AntPressWeb.DeveloperAuth, :require_authenticated}] do
       live "/developers/settings", DeveloperLive.Settings, :edit
+      # パスワード変更は別ページ。ここだけ再認証（sudo モード）が要る
+      live "/developers/settings/password", DeveloperLive.Password, :edit
 
       # クライアント管理（→ docs/SCREENS.md D3〜D5）
       # admin と developer が共用する。スコープは Platform 側で強制する
@@ -82,6 +84,9 @@ defmodule AntPressWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{AntPressWeb.UserAuth, :require_authenticated}] do
       live "/client/settings", UserLive.Settings, :edit
+      # パスワード変更は別ページ。ここだけ再認証（sudo モード）が要る
+      # （→ lib/antpress_web/live/user_live/password.ex）
+      live "/client/settings/password", UserLive.Password, :edit
 
       # 記事（→ docs/SCREENS.md C3 / C4）。ログイン後の着地点
       live "/client/articles", ArticleLive.Index, :index

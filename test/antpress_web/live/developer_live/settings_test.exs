@@ -34,7 +34,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
       assert %{"error" => "このページを表示するにはログインが必要です"} = flash
     end
 
-    test "⚠️ 再認証が必要でもページ自体は開ける（ログイン画面へ飛ばさない）",
+    test "⚠️ 再認証が必要でもパスワード画面自体は開ける（ログイン画面へ飛ばさない）",
          %{conn: conn} do
       # 記事・カテゴリ・画像には自由に行けるのにここだけ弾かれると、
       # 理由が分からず不具合に見える（実際に報告があった）
@@ -43,13 +43,13 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         |> log_in_developer(developer_fixture(),
           token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -30, :minute)
         )
-        |> live(~p"/developers/settings")
+        |> live(~p"/developers/settings/password")
 
-      assert html =~ "アカウント設定"
-      assert html =~ "表示テーマ"
-      # パスワード変更の部分だけ出さない
+      assert html =~ "パスワードの変更"
       assert html =~ "ログインし直しが必要です"
-      refute html =~ "新しいパスワード"
+
+      # 入力欄そのものを出さない（見出しの文言には「新しいパスワード」を含む）
+      refute html =~ ~s(name="developer[password]")
       assert html =~ ~s(href="/developers/log-in")
     end
 
@@ -57,9 +57,9 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
       {:ok, _lv, html} =
         conn
         |> log_in_developer(developer_fixture())
-        |> live(~p"/developers/settings")
+        |> live(~p"/developers/settings/password")
 
-      assert html =~ "新しいパスワード"
+      assert html =~ ~s(name="developer[password]")
       refute html =~ "ログインし直しが必要です"
     end
   end
@@ -73,7 +73,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
     test "updates the developer password", %{conn: conn, developer: developer} do
       new_password = valid_developer_password()
 
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
+      {:ok, lv, _html} = live(conn, ~p"/developers/settings/password")
 
       form =
         form(lv, "#password_form", %{
@@ -100,7 +100,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
     end
 
     test "renders errors with invalid data (phx-change)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
+      {:ok, lv, _html} = live(conn, ~p"/developers/settings/password")
 
       result =
         lv
@@ -118,7 +118,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
     end
 
     test "renders errors with invalid data (phx-submit)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/developers/settings")
+      {:ok, lv, _html} = live(conn, ~p"/developers/settings/password")
 
       result =
         lv
