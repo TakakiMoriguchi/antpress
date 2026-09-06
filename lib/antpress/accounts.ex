@@ -98,13 +98,23 @@ defmodule AntPress.Accounts do
 
   ## Settings
 
-  @doc """
-  Checks whether the user is in sudo mode.
+  @sudo_mode_minutes 20
 
-  The user is in sudo mode when the last authentication was done no further
-  than 20 minutes ago. The limit can be given as second argument in minutes.
+  @doc """
+  再認証（sudo モード）の有効時間（分）。
+
+  ⚠️ **画面の文言もここから出す。** 数字を直接書くと、しきい値を変えた
+  ときに説明だけ古くなる。
   """
-  def sudo_mode?(user, minutes \\ -20)
+  def sudo_mode_minutes, do: @sudo_mode_minutes
+
+  @doc """
+  最後の認証から `@sudo_mode_minutes` 分以内かどうか。
+
+  パスワード変更のような重要操作の前に確認する。開きっぱなしの端末から
+  乗っ取られるのを防ぐため（→ `docs/DECISIONS.md`）。
+  """
+  def sudo_mode?(user, minutes \\ -@sudo_mode_minutes)
 
   def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, DateTime) do
     DateTime.after?(ts, DateTime.utc_now() |> DateTime.add(minutes, :minute))

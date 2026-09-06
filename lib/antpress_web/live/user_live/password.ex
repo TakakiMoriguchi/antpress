@@ -35,9 +35,12 @@ defmodule AntPressWeb.UserLive.Password do
       <%!-- ⚠️ 変更できるのは最後にログインしてから一定時間だけ。
             開きっぱなしの端末から乗っ取られるのを防ぐため --%>
       <div :if={!@sudo_mode?} class="rounded-lg border border-base-300 p-4">
-        <p>セキュリティのため、パスワードの変更にはログインし直しが必要です。</p>
+        <p class="font-semibold">ログインし直してください</p>
+        <%!-- ⚠️ 分数は Accounts.sudo_mode_minutes/0 から出す。
+              直接書くと、しきい値を変えたときに説明だけ古くなる --%>
         <p class="mt-1 text-sm text-base-content/60">
-          最後にログインしてから時間が経つと、この操作だけ再確認をお願いしています。
+          最後にログインしてから {@sudo_mode_minutes} 分を過ぎたため、パスワードの変更にはもう一度ログインが必要です。<br />
+          他人が開きっぱなしの画面からパスワードを変えられないようにするためです。
         </p>
         <.button class="mt-3" navigate={~p"/client/log-in"}>ログインし直す</.button>
       </div>
@@ -94,6 +97,7 @@ defmodule AntPressWeb.UserLive.Password do
      |> assign(:current_email, user.email)
      |> assign(:password_form, to_form(password_changeset))
      |> assign(:trigger_submit, false)
+     |> assign(:sudo_mode_minutes, Accounts.sudo_mode_minutes())
      |> assign(:sudo_mode?, Accounts.sudo_mode?(user))}
   end
 

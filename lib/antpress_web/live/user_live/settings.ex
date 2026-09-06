@@ -16,6 +16,8 @@ defmodule AntPressWeb.UserLive.Settings do
   """
   use AntPressWeb, :live_view
 
+  alias AntPress.Accounts
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -50,7 +52,12 @@ defmodule AntPressWeb.UserLive.Settings do
       <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-base-300 p-4">
         <div>
           <p class="font-semibold">パスワード</p>
-          <p class="text-sm opacity-60">変更にはログインし直しが必要になる場合があります</p>
+          <%!-- ⚠️「必要になる場合があります」では何をすればよいか分からない。
+                いま変更できるのかどうかを言い切る --%>
+          <p :if={@sudo_mode?} class="text-sm opacity-60">いま変更できます</p>
+          <p :if={!@sudo_mode?} class="text-sm opacity-60">
+            変更するにはログインし直しが必要です
+          </p>
         </div>
         <.button navigate={~p"/client/settings/password"}>パスワードを変更</.button>
       </div>
@@ -60,6 +67,9 @@ defmodule AntPressWeb.UserLive.Settings do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :page_title, "アカウント設定")}
+    {:ok,
+     socket
+     |> assign(:page_title, "アカウント設定")
+     |> assign(:sudo_mode?, Accounts.sudo_mode?(socket.assigns.current_user.user))}
   end
 end

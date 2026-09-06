@@ -44,6 +44,16 @@ defmodule AntPressWeb.FlashTest do
     assert flash_tag(html, "flash-info") =~ "toast-end"
   end
 
+  test "接続エラーの通知も日本語", %{conn: conn, scope: scope} do
+    html = trigger_flash(conn, scope)
+
+    assert html =~ "ネットワークに接続できません"
+    assert html =~ "接続が切れました"
+    assert html =~ "再接続しています"
+    refute html =~ "We can&#39;t find the internet"
+    refute html =~ "Something went wrong"
+  end
+
   test "colocated hook の script タグは描画に残らない", %{conn: conn, scope: scope} do
     # コンパイル時に app.js へ取り込まれる。1 ページに 4 回出たりしない
     html = trigger_flash(conn, scope)

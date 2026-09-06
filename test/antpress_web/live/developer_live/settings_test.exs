@@ -6,6 +6,25 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
   import AntPress.PlatformFixtures
 
   describe "Settings page" do
+    test "⚠️ パスワードの説明を言い切る（「場合があります」にしない）", %{conn: conn} do
+      # 何をすればよいか分からないので、いまの状態を出す
+      {:ok, _lv, now} =
+        conn |> log_in_developer(developer_fixture()) |> live(~p"/developers/settings")
+
+      assert now =~ "いま変更できます"
+      refute now =~ "場合があります"
+
+      {:ok, _lv, later} =
+        build_conn()
+        |> log_in_developer(developer_fixture(),
+          token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -60, :minute)
+        )
+        |> live(~p"/developers/settings")
+
+      assert later =~ "変更するにはログインし直しが必要です"
+      refute later =~ "場合があります"
+    end
+
     test "renders settings page", %{conn: conn} do
       {:ok, _lv, html} =
         conn
@@ -46,7 +65,8 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         |> live(~p"/developers/settings/password")
 
       assert html =~ "パスワードの変更"
-      assert html =~ "ログインし直しが必要です"
+      assert html =~ "ログインし直してください"
+      assert html =~ "20 分を過ぎたため"
 
       # 入力欄そのものを出さない（見出しの文言には「新しいパスワード」を含む）
       refute html =~ ~s(name="developer[password]")
@@ -60,7 +80,7 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
         |> live(~p"/developers/settings/password")
 
       assert html =~ ~s(name="developer[password]")
-      refute html =~ "ログインし直しが必要です"
+      refute html =~ "ログインし直してください"
     end
   end
 
