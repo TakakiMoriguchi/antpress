@@ -164,6 +164,40 @@ defmodule AntPressWeb.CoreComponents do
   end
 
   @doc """
+  フォーム項目のラベル。
+
+  ⚠️ **daisyUI の `.label` をそのまま使わない。**
+
+  * `.fieldset` が `font-size: 0.75rem`（12px）を効かせる
+  * `.label` が文字色を 60% の不透明度にする
+
+  この 2 つが重なって、`.input` のラベルだけが極端に小さく薄くなり、
+  手書きのラベル（本文・サムネイル）と大きさが揃わなくなっていた。
+
+  `for` を渡すと `<label>`、渡さないと `<span>` を描画する。
+  `.input` は自身が `<label>` で囲むので `for` なしで使う
+  （`<label>` の入れ子は不正な HTML）。
+  """
+  attr :for, :string, default: nil
+  slot :inner_block, required: true
+
+  def field_label(%{for: nil} = assigns) do
+    ~H"""
+    <span class="mb-1.5 block text-base font-medium text-base-content">
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  def field_label(assigns) do
+    ~H"""
+    <label for={@for} class="mb-1.5 block text-base font-medium text-base-content">
+      {render_slot(@inner_block)}
+    </label>
+    """
+  end
+
+  @doc """
   Renders an input with label and error messages.
 
   A `Phoenix.HTML.FormField` may be passed as argument,
@@ -252,7 +286,7 @@ defmodule AntPressWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-5">
       <label for={@id}>
         <input
           type="hidden"
@@ -261,7 +295,9 @@ defmodule AntPressWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="label">
+        <%!-- チェックボックスは横並びなので .label を使うが、
+              .fieldset の 12px を打ち消して他のラベルと大きさを揃える --%>
+        <span class="label text-base text-base-content">
           <input
             type="checkbox"
             id={@id}
@@ -280,9 +316,9 @@ defmodule AntPressWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <.field_label :if={@label}>{@label}</.field_label>
         <select
           id={@id}
           name={@name}
@@ -301,9 +337,9 @@ defmodule AntPressWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <.field_label :if={@label}>{@label}</.field_label>
         <textarea
           id={@id}
           name={@name}
@@ -322,9 +358,9 @@ defmodule AntPressWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <.field_label :if={@label}>{@label}</.field_label>
         <input
           type={@type}
           name={@name}

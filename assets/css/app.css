@@ -49,8 +49,10 @@
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
+  /* daisyUI 既定の 0.21875rem は入力欄・ボタンが 35px になり小さい。
+     0.25rem で 40px（--size-field * 10）。→ assets/css/app.css 末尾の注記 */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
@@ -84,8 +86,10 @@
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
+  /* daisyUI 既定の 0.21875rem は入力欄・ボタンが 35px になり小さい。
+     0.25rem で 40px（--size-field * 10）。→ assets/css/app.css 末尾の注記 */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
@@ -103,3 +107,29 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* ── フォーム部品のサイズ ────────────────────────────────
+   daisyUI 既定は --size-field: 0.21875rem で、入力欄・選択欄・ボタンが
+   すべて 35px になる。小さく、ひと昔前の見た目になるので 0.25rem
+   （= 40px）に上げてある（テーマ定義の中）。
+
+   文字サイズも 16px にする。理由は 2 つ。
+
+   1. 40px の高さに 14px の文字だと間延びして見える
+   2. daisyUI は iOS のズーム対策として **フォーカス時だけ** 16px に
+      上げる（`@supports (-webkit-touch-callout: none)`）。常時 16px に
+      しておけば、フォーカスのたびに文字サイズが跳ねない
+
+   daisyUI の .input / .textarea は var(--font-size) を読むが、
+   **.select は font-size を直に書いている**ので個別に指定する。
+   ここは @layer の外なので daisyUI の定義より優先される。
+   ──────────────────────────────────────────────────── */
+.input,
+.textarea,
+.file-input {
+  --font-size: 1rem;
+}
+
+.select {
+  font-size: 1rem;
+}

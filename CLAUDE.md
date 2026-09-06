@@ -402,6 +402,22 @@ Phoenix 1.8 の **colocated hooks** を使う。`assets/js/` に別ファイル�
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... mix run priv/repo/seeds.exs
 ```
 
+### ⚠️ フォーム部品の大きさとラベル
+
+**サイズは `assets/css/app.css` のテーマ変数で決める。個別に付けない。**
+
+| | 値 | 備考 |
+| --- | --- | --- |
+| `--size-field` | `0.25rem` | 入力欄・選択欄・ボタンの高さ（`× 10` = **40px**）。daisyUI 既定の `0.21875rem` は 35px で小さい |
+| 文字サイズ | `1rem`（16px） | daisyUI は iOS 対策で**フォーカス時だけ** 16px に上げる。常時 16px なら跳ねない |
+
+- ⚠️ `input-sm` / `btn-sm` を個別に付けない。揃わなくなる
+- ⚠️ **ラベルは `<.field_label>` を使う。daisyUI の `.label` を直接使わない。**
+  `.fieldset` の `font-size: 0.75rem` と `.label` の 60% 不透明度が重なって、
+  `.input` のラベルだけ極端に小さく薄くなる（実際にそうなっていた）
+- 項目の間隔は `.input` の `fieldset mb-5`。手書きの項目も `mb-5` に揃える
+- 構造は `test/antpress_web/responsive_test.exs` で固定してある
+
 ### ⚠️ レスポンシブ（全ページ対応済み）
 
 client 側だけでなく admin / developer 側も含めて全ページ対応する。

@@ -98,7 +98,7 @@ defmodule AntPressWeb.ImageLive.Index do
                 （→ CLAUDE.md「画面に技術用語を出さない」） --%>
           <form phx-submit="save-alt">
             <input type="hidden" name="image_id" value={image.id} />
-            <label class="label text-xs" for={"image-alt-#{image.id}"}>画像の説明</label>
+            <.field_label for={"image-alt-#{image.id}"}>画像の説明</.field_label>
             <div class="mt-1 flex items-center gap-1">
               <input
                 type="text"
@@ -107,10 +107,10 @@ defmodule AntPressWeb.ImageLive.Index do
                 value={image.alt_text}
                 maxlength="200"
                 placeholder="例: 店舗の外観"
-                class="input input-sm w-full"
+                class="input w-full"
               />
               <%!-- アイコンだけだと保存ボタンだと分からない（実際に分からなかった） --%>
-              <.button class="btn-sm">保存</.button>
+              <.button>保存</.button>
             </div>
           </form>
 

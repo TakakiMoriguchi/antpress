@@ -71,16 +71,16 @@ defmodule AntPressWeb.ArticleLive.Form do
         <.input field={@form[:title]} type="text" label="タイトル" />
         <%!-- ⚠️ アドレスは入力させない。システムが決めて以後変えない
               （→ AntPress.Blog.Article の説明） --%>
-        <div :if={@article.slug} class="mt-4">
-          <span class="label">記事のアドレス</span>
+        <div :if={@article.slug} class="mb-5">
+          <.field_label>記事のアドレス</.field_label>
           <p class="mt-1 font-mono text-sm">{@article.slug}</p>
           <p class="mt-1 text-sm text-base-content/60">
             サイトでこの記事を開くときのアドレスです。<br /> 公開後に変わると既存のリンクが開けなくなるため、自動で決まり、変更できません。
           </p>
         </div>
 
-        <div class="mt-4">
-          <label class="label" for="article-editor-root">本文</label>
+        <div class="mb-5">
+          <.field_label for="article-editor-root">本文</.field_label>
           <%!-- ⚠️ phx-update="ignore" は必須。本文の hidden input も中に置く --%>
           <div
             id={"article-editor-#{@editor_key}"}
@@ -109,8 +109,8 @@ defmodule AntPressWeb.ArticleLive.Form do
           options={@category_options}
         />
 
-        <div class="mt-4">
-          <span class="label">サムネイル</span>
+        <div class="mb-5">
+          <.field_label>サムネイル</.field_label>
           <p class="text-sm text-base-content/60">記事の一覧や SNS に出る画像です。1 枚だけ設定できます。</p>
           <div class="mt-2 flex flex-wrap items-center gap-4">
             <img
@@ -134,7 +134,7 @@ defmodule AntPressWeb.ArticleLive.Form do
                 :if={@thumbnail}
                 type="button"
                 phx-click="clear-thumbnail"
-                class="btn-outline btn-sm"
+                class="btn-outline"
               >
                 外す
               </.button>

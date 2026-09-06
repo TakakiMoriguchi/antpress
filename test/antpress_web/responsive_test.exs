@@ -110,6 +110,48 @@ defmodule AntPressWeb.ResponsiveTest do
     end
   end
 
+  describe "フォーム部品の大きさ" do
+    setup :register_and_log_in_user
+
+    test "⚠️ ラベルの見た目が全項目で揃っている", %{conn: conn} do
+      # .fieldset の font-size: 0.75rem と .label の 60% 不透明度が
+      # 重なって、.input のラベルだけ極端に小さく薄くなっていた
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
+
+      expected = "mb-1.5 block text-base font-medium text-base-content"
+
+      for label <- ~w(タイトル 本文 サムネイル カテゴリ 公開状態) do
+        assert html =~ ~r/<(?:span|label)[^>]*class="#{Regex.escape(expected)}"[^>]*>\s*#{label}/,
+               "「#{label}」のラベルが他と揃っていない"
+      end
+    end
+
+    test "daisyUI の .label をそのまま使わない", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
+
+      refute html =~ ~s(class="label mb-1")
+      refute html =~ ~s(class="label")
+    end
+
+    test "項目の間隔を確保している", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/client/articles/new")
+
+      assert html =~ "fieldset mb-5"
+      refute html =~ "fieldset mb-2"
+    end
+
+    test "入力欄を小さくしない", %{conn: conn, scope: scope} do
+      # 全体のサイズは --size-field（assets/css/app.css）で決まる。
+      # 個別に input-sm を付けると揃わなくなる
+      image_fixture(scope)
+      {:ok, _lv, images} = live(conn, ~p"/client/images")
+      {:ok, _lv, articles} = live(conn, ~p"/client/articles")
+
+      refute images =~ "input-sm"
+      refute articles =~ "input-sm"
+    end
+  end
+
   describe "トースト" do
     setup :register_and_log_in_user
 
