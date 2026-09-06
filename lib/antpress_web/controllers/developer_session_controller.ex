@@ -48,8 +48,18 @@ defmodule AntPressWeb.DeveloperSessionController do
 
   def update_password(conn, %{"developer" => developer_params} = params) do
     developer = conn.assigns.current_developer.developer
-    true = Platform.sudo_mode?(developer)
 
+    # ⚠️ 直接 POST された場合も落とさない。fail closed のまま案内を出す
+    if Platform.sudo_mode?(developer) do
+      do_update_password(conn, developer, developer_params, params)
+    else
+      conn
+      |> put_flash(:error, "セキュリティのため、パスワードの変更にはログインし直しが必要です")
+      |> redirect(to: ~p"/developers/settings")
+    end
+  end
+
+  defp do_update_password(conn, developer, developer_params, params) do
     {:ok, {_developer, expired_tokens}} =
       Platform.update_developer_password(developer, developer_params)
 

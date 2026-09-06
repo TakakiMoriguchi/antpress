@@ -34,16 +34,33 @@ defmodule AntPressWeb.DeveloperLive.SettingsTest do
       assert %{"error" => "このページを表示するにはログインが必要です"} = flash
     end
 
-    test "redirects if developer is not in sudo mode", %{conn: conn} do
-      {:ok, conn} =
+    test "⚠️ 再認証が必要でもページ自体は開ける（ログイン画面へ飛ばさない）",
+         %{conn: conn} do
+      # 記事・カテゴリ・画像には自由に行けるのにここだけ弾かれると、
+      # 理由が分からず不具合に見える（実際に報告があった）
+      {:ok, _lv, html} =
         conn
         |> log_in_developer(developer_fixture(),
-          token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -11, :minute)
+          token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -30, :minute)
         )
         |> live(~p"/developers/settings")
-        |> follow_redirect(conn, ~p"/developers/log-in")
 
-      assert conn.resp_body =~ "You must re-authenticate to access this page."
+      assert html =~ "アカウント設定"
+      assert html =~ "表示テーマ"
+      # パスワード変更の部分だけ出さない
+      assert html =~ "ログインし直しが必要です"
+      refute html =~ "新しいパスワード"
+      assert html =~ ~s(href="/developers/log-in")
+    end
+
+    test "再認証済みならパスワードを変更できる", %{conn: conn} do
+      {:ok, _lv, html} =
+        conn
+        |> log_in_developer(developer_fixture())
+        |> live(~p"/developers/settings")
+
+      assert html =~ "新しいパスワード"
+      refute html =~ "ログインし直しが必要です"
     end
   end
 

@@ -240,7 +240,7 @@ defmodule AntPressWeb.DeveloperAuth do
     else
       socket =
         socket
-        |> Phoenix.LiveView.put_flash(:error, "You must re-authenticate to access this page.")
+        |> Phoenix.LiveView.put_flash(:error, "この操作にはログインし直しが必要です")
         |> Phoenix.LiveView.redirect(to: ~p"/developers/log-in")
 
       {:halt, socket}

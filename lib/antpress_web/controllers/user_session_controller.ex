@@ -48,7 +48,18 @@ defmodule AntPressWeb.UserSessionController do
 
   def update_password(conn, %{"user" => user_params} = params) do
     user = conn.assigns.current_user.user
-    true = Accounts.sudo_mode?(user)
+
+    # ⚠️ 直接 POST された場合も落とさない。fail closed のまま案内を出す
+    if Accounts.sudo_mode?(user) do
+      do_update_password(conn, user, user_params, params)
+    else
+      conn
+      |> put_flash(:error, "セキュリティのため、パスワードの変更にはログインし直しが必要です")
+      |> redirect(to: ~p"/client/settings")
+    end
+  end
+
+  defp do_update_password(conn, user, user_params, params) do
     {:ok, {_user, expired_tokens}} = Accounts.update_user_password(user, user_params)
 
     # disconnect all existing LiveViews with old sessions
