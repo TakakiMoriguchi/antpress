@@ -51,6 +51,43 @@ def list_articles, do: Repo.all(Article)
 - 分離は**アプリケーション層で強制する**。Supabase RLS は使わない
 - コンテキスト関数は必ずスコープの起点（`client_id` または `%Developer{}`）を引数に取る
 
+## ⚠️ 停止（`status = :suspended`）は 3 段ある
+
+**これが効かないと課金コントロールの手段が無い**（→ `docs/DECISIONS.md` 3.10）。
+
+| 段 | 止まる範囲 |
+| --- | --- |
+| `users.status` | そのユーザーだけ（スタッフが辞めた等） |
+| `clients.status` | そのクライアント全員（契約終了） |
+| `developers.status` | **その developer 配下の全クライアント**（未入金等） |
+
+判定は `AntPress.Accounts.suspension_reason/1`（3 段すべてを見る）と
+`AntPress.Platform.active?/1`。
+
+- ⚠️ **既存のセッションも止める。** 新規ログインだけを塞ぐと、停止した
+  クライアントがセッションの有効期間（14 日）ぶん使い続けられる
+- ⚠️ **plug と `on_mount` の両方に入れる。** LiveView は WebSocket で
+  繋ぎ直すので、`on_mount` を漏らすと停止後も画面が動き続ける
+- ⚠️ **`suspension_reason/1` は preload されていないと raise する。**
+  黙って「利用可」と判定させない。ユーザーを読む関数は
+  `preload: [client: :developer]` を付ける
+- 停止時のメッセージには**問い合わせ先**を含める
+
+### ⚠️ 誰が誰を停止できるか
+
+| 操作する人 | 止められる相手 |
+| --- | --- |
+| オーナー | 同じクライアントの**スタッフだけ** |
+| developer | 自分の配下のクライアントのユーザー |
+| admin | 全クライアントのユーザー、および developer |
+
+- **スタッフは誰も止められない**
+- **自分自身は止められない**（オーナーも admin も。止めると誰も入れなくなる）
+- **オーナーは他のオーナーを止められない**（発行するのは developer なので）
+- **developer は他の developer を止められない**（再販構造が壊れる）
+
+境界は `test/antpress_web/suspension_test.exs` で固定してある。
+
 ## ⚠️ 2 種類の API キーを混同しない
 
 | キー | 保存方法 | 理由 |

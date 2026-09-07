@@ -46,7 +46,7 @@ defmodule AntPressWeb.UserAuth do
 
   It clears all session data for safety. See renew_session.
   """
-  def log_out_user(conn) do
+  def log_out_user(conn, to \\ ~p"/") do
     user_token = get_session(conn, :user_token)
     user_token && Accounts.delete_user_session_token(user_token)
 
@@ -57,7 +57,9 @@ defmodule AntPressWeb.UserAuth do
     conn
     |> renew_session(nil)
     |> delete_resp_cookie(@remember_me_cookie, @remember_me_options)
-    |> redirect(to: ~p"/")
+    # ⚠️ 行き先を選べるようにしてある。停止でログアウトさせる場合は
+    # ログイン画面へ送る（トップに落とすと何が起きたのか分からない）
+    |> redirect(to: to)
   end
 
   @doc """
@@ -218,16 +220,19 @@ defmodule AntPressWeb.UserAuth do
 
   def on_mount(:require_authenticated, _params, session, socket) do
     socket = mount_current_user(socket, session)
+    user = socket.assigns.current_user && socket.assigns.current_user.user
 
-    if socket.assigns.current_user && socket.assigns.current_user.user do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "このページを表示するにはログインが必要です")
-        |> Phoenix.LiveView.redirect(to: ~p"/client/log-in")
+    cond do
+      is_nil(user) ->
+        {:halt, redirect_to_login(socket, "このページを表示するにはログインが必要です")}
 
-      {:halt, socket}
+      # ⚠️ plug 側だけでは足りない。LiveView は WebSocket で繋ぎ直すので、
+      # ここを漏らすと停止後も画面が動き続ける
+      reason = Accounts.suspension_reason(user) ->
+        {:halt, redirect_to_login(socket, suspension_message(reason))}
+
+      true ->
+        {:cont, socket}
     end
   end
 
@@ -244,6 +249,12 @@ defmodule AntPressWeb.UserAuth do
 
       {:halt, socket}
     end
+  end
+
+  defp redirect_to_login(socket, message) do
+    socket
+    |> Phoenix.LiveView.put_flash(:error, message)
+    |> Phoenix.LiveView.redirect(to: ~p"/client/log-in")
   end
 
   defp mount_current_user(socket, session) do
@@ -273,16 +284,43 @@ defmodule AntPressWeb.UserAuth do
   Plug for routes that require the user to be authenticated.
   """
   def require_authenticated_user(conn, _opts) do
-    if conn.assigns.current_user && conn.assigns.current_user.user do
-      conn
-    else
-      conn
-      |> put_flash(:error, "このページを表示するにはログインが必要です")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/client/log-in")
-      |> halt()
+    user = conn.assigns.current_user && conn.assigns.current_user.user
+
+    cond do
+      is_nil(user) ->
+        conn
+        |> put_flash(:error, "このページを表示するにはログインが必要です")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/client/log-in")
+        |> halt()
+
+      # ⚠️ **既存のセッションもここで止まる。** 新規ログインだけを塞ぐと、
+      # 停止したクライアントがセッションの有効期間（14 日）ぶん使い続けられる
+      reason = Accounts.suspension_reason(user) ->
+        conn
+        |> put_flash(:error, suspension_message(reason))
+        |> log_out_user(~p"/client/log-in")
+        |> halt()
+
+      true ->
+        conn
     end
   end
+
+  @doc """
+  停止理由に応じた案内。**問い合わせ先が分かるようにする。**
+
+  「なぜ入れないのか」が分からないと、誰に連絡すればよいか判断できない
+  （→ `docs/DECISIONS.md` 3.10）。
+  """
+  def suspension_message(:user),
+    do: "このアカウントは停止されています。オーナーにお問い合わせください"
+
+  def suspension_message(:client),
+    do: "ご利用が停止されています。契約先にお問い合わせください"
+
+  def suspension_message(:developer),
+    do: "ご利用が停止されています。契約先にお問い合わせください"
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do
     put_session(conn, :user_return_to, current_path(conn))

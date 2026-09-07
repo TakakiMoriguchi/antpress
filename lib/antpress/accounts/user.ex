@@ -18,6 +18,10 @@ defmodule AntPress.Accounts.User do
     # （→ docs/DECISIONS.md 3.5）
     field :role, Ecto.Enum, values: [:owner, :staff], default: :staff
 
+    # ⚠️ 停止するとログインできなくなる（→ AntPress.Accounts.suspension_reason/1）。
+    # レコードは消さない（スタッフが辞めた記録を残す）
+    field :status, Ecto.Enum, values: [:active, :suspended], default: :active
+
     # 所属するクライアント（テナント）
     belongs_to :client, AntPress.Platform.Client
 
@@ -50,6 +54,15 @@ defmodule AntPress.Accounts.User do
     |> cast(attrs, [:name])
     |> validate_required([:name])
     |> validate_length(:name, max: 160)
+  end
+
+  @doc """
+  停止状態を切り替える changeset。
+
+  ⚠️ `role` は含めない。停止操作で権限が変わってはいけない。
+  """
+  def status_changeset(user, attrs) do
+    cast(user, attrs, [:status])
   end
 
   @doc """

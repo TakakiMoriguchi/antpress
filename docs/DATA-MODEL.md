@@ -277,6 +277,7 @@ erDiagram
 | `email` | string | not null, unique | グローバル一意（1 メール = 1 アカウント） |
 | `hashed_password` | string | not null | |
 | `role` | enum | not null | `owner` / `staff` |
+| `status` | enum | not null, default `active` | `active` / `suspended`。スタッフが辞めたときにアクセスを止める |
 | `confirmed_at` | utc_datetime | | |
 | `inserted_at` / `updated_at` | utc_datetime | not null | |
 

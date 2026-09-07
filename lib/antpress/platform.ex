@@ -6,7 +6,9 @@ defmodule AntPress.Platform do
   import Ecto.Query, warn: false
   alias AntPress.Repo
 
-  alias AntPress.Platform.{Developer, DeveloperToken, DeveloperNotifier}
+  # ⚠️ alias は宣言より後ろにしか効かない。
+  # 途中で宣言すると、それより前の関数で struct が解決できない
+  alias AntPress.Platform.{Client, Developer, DeveloperNotifier, DeveloperToken, Scope}
 
   ## Database getters
 
@@ -81,6 +83,39 @@ defmodule AntPress.Platform do
     |> Developer.create_changeset(attrs)
     |> Repo.insert()
   end
+
+  @doc """
+  developer の停止・再開。
+
+  ⚠️ **admin だけが操作できる。** developer が他の developer を止められると
+  再販構造が壊れる。
+
+  ⚠️ **自分自身は停止できない。** admin が自分を止めると誰も入れなくなる。
+  """
+  def update_developer_status(%Scope{} = scope, %Developer{} = developer, attrs) do
+    cond do
+      not Developer.admin?(scope.developer) ->
+        {:error, :unauthorized}
+
+      scope.developer.id == developer.id ->
+        {:error, :cannot_suspend_self}
+
+      true ->
+        developer
+        |> Developer.status_changeset(attrs)
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  利用できる状態かどうか。
+
+  developer を停止すると、その developer 自身のログインも、
+  配下の全クライアントの利用も止まる（→ `AntPress.Accounts.suspension_reason/1`）。
+  これが実質の課金コントロールになる（→ `docs/DECISIONS.md` 3.10）。
+  """
+  def active?(%Developer{status: :active}), do: true
+  def active?(%Developer{}), do: false
 
   ## Settings
 
@@ -337,9 +372,6 @@ defmodule AntPress.Platform do
       end
     end)
   end
-
-  alias AntPress.Platform.Client
-  alias AntPress.Platform.Scope
 
   @doc """
   Subscribes to scoped notifications about any client changes.

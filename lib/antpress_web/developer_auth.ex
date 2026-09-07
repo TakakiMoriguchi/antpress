@@ -5,6 +5,7 @@ defmodule AntPressWeb.DeveloperAuth do
   import Phoenix.Controller
 
   alias AntPress.Platform
+  alias AntPress.Platform.Developer
   alias AntPress.Platform.Scope
 
   # Make the remember me cookie valid for 14 days. This should match
@@ -46,7 +47,7 @@ defmodule AntPressWeb.DeveloperAuth do
 
   It clears all session data for safety. See renew_session.
   """
-  def log_out_developer(conn) do
+  def log_out_developer(conn, to \\ ~p"/") do
     developer_token = get_session(conn, :developer_token)
     developer_token && Platform.delete_developer_session_token(developer_token)
 
@@ -57,7 +58,9 @@ defmodule AntPressWeb.DeveloperAuth do
     conn
     |> renew_session(nil)
     |> delete_resp_cookie(@remember_me_cookie, @remember_me_options)
-    |> redirect(to: ~p"/")
+    # ⚠️ 行き先を選べるようにしてある。停止でログアウトさせる場合は
+    # ログイン画面へ送る（トップに落とすと何が起きたのか分からない）
+    |> redirect(to: to)
   end
 
   @doc """
@@ -219,16 +222,40 @@ defmodule AntPressWeb.DeveloperAuth do
 
   def on_mount(:require_authenticated, _params, session, socket) do
     socket = mount_current_developer(socket, session)
+    developer = socket.assigns.current_developer && socket.assigns.current_developer.developer
 
-    if socket.assigns.current_developer && socket.assigns.current_developer.developer do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "このページを表示するにはログインが必要です")
-        |> Phoenix.LiveView.redirect(to: ~p"/developers/log-in")
+    cond do
+      is_nil(developer) ->
+        {:halt, redirect_to_login(socket, "このページを表示するにはログインが必要です")}
 
-      {:halt, socket}
+      # ⚠️ plug 側だけでは足りない。LiveView は WebSocket で繋ぎ直すので、
+      # ここを漏らすと停止後も画面が動き続ける
+      not Platform.active?(developer) ->
+        {:halt, redirect_to_login(socket, "ご利用が停止されています。運営者にお問い合わせください")}
+
+      true ->
+        {:cont, socket}
+    end
+  end
+
+  # admin だけが入れる画面に使う（→ docs/SCREENS.md P1〜P4）。
+  #
+  # ⚠️ developer が admin の画面に入れると、**他の developer とその
+  # クライアント全部が見えてしまう。**
+  def on_mount(:require_admin, params, session, socket) do
+    case on_mount(:require_authenticated, params, session, socket) do
+      {:cont, socket} ->
+        if Developer.admin?(socket.assigns.current_developer.developer) do
+          {:cont, socket}
+        else
+          {:halt,
+           socket
+           |> Phoenix.LiveView.put_flash(:error, "この画面を表示する権限がありません")
+           |> Phoenix.LiveView.redirect(to: ~p"/clients")}
+        end
+
+      halted ->
+        halted
     end
   end
 
@@ -245,6 +272,12 @@ defmodule AntPressWeb.DeveloperAuth do
 
       {:halt, socket}
     end
+  end
+
+  defp redirect_to_login(socket, message) do
+    socket
+    |> Phoenix.LiveView.put_flash(:error, message)
+    |> Phoenix.LiveView.redirect(to: ~p"/developers/log-in")
   end
 
   defp mount_current_developer(socket, session) do
@@ -276,14 +309,26 @@ defmodule AntPressWeb.DeveloperAuth do
   Plug for routes that require the developer to be authenticated.
   """
   def require_authenticated_developer(conn, _opts) do
-    if conn.assigns.current_developer && conn.assigns.current_developer.developer do
-      conn
-    else
-      conn
-      |> put_flash(:error, "このページを表示するにはログインが必要です")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/developers/log-in")
-      |> halt()
+    developer = conn.assigns.current_developer && conn.assigns.current_developer.developer
+
+    cond do
+      is_nil(developer) ->
+        conn
+        |> put_flash(:error, "このページを表示するにはログインが必要です")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/developers/log-in")
+        |> halt()
+
+      # ⚠️ **既存のセッションもここで止まる。** 新規ログインだけを塞ぐと、
+      # 停止した developer がセッションの有効期間（14 日）ぶん使い続けられる
+      not Platform.active?(developer) ->
+        conn
+        |> put_flash(:error, "ご利用が停止されています。運営者にお問い合わせください")
+        |> log_out_developer(~p"/developers/log-in")
+        |> halt()
+
+      true ->
+        conn
     end
   end
 

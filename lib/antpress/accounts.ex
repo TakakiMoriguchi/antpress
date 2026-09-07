@@ -8,7 +8,10 @@ defmodule AntPress.Accounts do
 
   alias AntPress.Accounts.{User, UserToken, UserNotifier}
 
-  alias AntPress.Platform.Client
+  # ⚠️ alias は宣言より後ろにしか効かない。先頭にまとめる
+  alias AntPress.Accounts.Scope
+  alias AntPress.Platform
+  alias AntPress.Platform.{Client, Developer}
 
   ## Database getters
 
@@ -46,7 +49,8 @@ defmodule AntPress.Accounts do
 
     # ⚠️ client を preload する。この結果は Scope になるため
     #    （未 preload だと Scope.for_user/1 が raise する → scope.ex）
-    if User.valid_password?(user, password), do: Repo.preload(user, :client)
+    # developer も preload する。停止判定が 3 段を見るため（→ suspension_reason/1）
+    if User.valid_password?(user, password), do: Repo.preload(user, client: :developer)
   end
 
   @doc """
@@ -63,7 +67,7 @@ defmodule AntPress.Accounts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: User |> Repo.get!(id) |> Repo.preload(:client)
+  def get_user!(id), do: User |> Repo.get!(id) |> Repo.preload(client: :developer)
 
   ## User registration
 
@@ -94,6 +98,105 @@ defmodule AntPress.Accounts do
       {:ok, user} -> {:ok, %{user | client: client}}
       {:error, _} = error -> error
     end
+  end
+
+  @doc """
+  ユーザーの停止・再開。
+
+  ⚠️ **権限の境界がここに集まる。**
+
+  | 操作する人 | 止められる相手 |
+  | --- | --- |
+  | オーナー（`%Accounts.Scope{}`） | 同じクライアントの**スタッフだけ** |
+  | developer / admin（`%Platform.Scope{}`） | 自分の配下のクライアントの**オーナー**（admin は全件） |
+
+  * **スタッフは誰も止められない**（自分より上を止められないようにする）
+  * **オーナーは自分自身を止められない**（誰も入れなくなる）
+  * **オーナーは他のオーナーを止められない**（発行するのは developer なので）
+  """
+  def update_user_status(%Scope{} = scope, %User{} = target, attrs) do
+    cond do
+      not User.owner?(scope.user) ->
+        {:error, :unauthorized}
+
+      target.client_id != scope.client.id ->
+        {:error, :unauthorized}
+
+      scope.user.id == target.id ->
+        {:error, :cannot_suspend_self}
+
+      not User.owner?(target) ->
+        do_update_status(target, attrs)
+
+      true ->
+        {:error, :unauthorized}
+    end
+  end
+
+  def update_user_status(%Platform.Scope{} = dev_scope, %User{} = target, attrs) do
+    if owns_client?(dev_scope, target.client_id) do
+      do_update_status(target, attrs)
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  defp do_update_status(%User{} = user, attrs) do
+    user
+    |> User.status_changeset(attrs)
+    |> Repo.update()
+  end
+
+  # ⚠️ admin だけがスコープを越えられる（→ CLAUDE.md）
+  defp owns_client?(%Platform.Scope{developer: %Developer{role: :admin}}, _client_id), do: true
+
+  defp owns_client?(%Platform.Scope{developer: %Developer{id: dev_id}}, client_id) do
+    Repo.exists?(from c in Client, where: c.id == ^client_id and c.developer_id == ^dev_id)
+  end
+
+  @doc """
+  利用できる状態かどうか。
+
+  ⚠️ **3 段すべてを見る。**
+
+  | 段 | 停止されたら |
+  | --- | --- |
+  | `users.status` | そのユーザーだけ使えない（スタッフが辞めた等） |
+  | `clients.status` | そのクライアント全員が使えない（契約終了） |
+  | `developers.status` | その developer 配下の全クライアントが使えない（未入金等） |
+
+  developer を停止すれば配下のクライアントごと止まる。これが実質の
+  課金コントロールになる（→ `docs/DECISIONS.md` 3.10）。
+  """
+  def active?(%User{} = user), do: suspension_reason(user) == nil
+
+  @doc """
+  停止されている理由。停止されていなければ `nil`。
+
+  画面に**理由が分かるメッセージ**を出すために使う。「なぜ入れないのか」が
+  分からないと問い合わせ先も判断できない。
+  """
+  def suspension_reason(%User{status: :suspended}), do: :user
+
+  def suspension_reason(%User{client: %Client{status: :suspended}}), do: :client
+
+  def suspension_reason(%User{client: %Client{developer: %Developer{status: :suspended}}}),
+    do: :developer
+
+  def suspension_reason(%User{client: %Client{}}), do: nil
+
+  # ⚠️ preload されていないと判定できない。黙って「利用可」にしない
+  def suspension_reason(%User{} = user) do
+    raise ArgumentError, """
+    AntPress.Accounts.suspension_reason/1 には client と client.developer を
+    preload したユーザーを渡してください。
+
+    受け取ったユーザー: #{inspect(user.id)}
+
+    停止判定はユーザー・クライアント・developer の 3 段を見ます。
+    preload されていない状態で「停止されていない」と判定すると、
+    停止したはずのクライアントが使えてしまいます。
+    """
   end
 
   ## Settings
@@ -232,9 +335,16 @@ defmodule AntPress.Accounts do
 
     # ⚠️ client を preload する。Accounts.Scope は client を必ず持つ必要があり、
     #    未 preload だと Scope.for_user/1 が raise する（→ scope.ex）
+    #
+    # ⚠️ client の developer も preload する。停止判定は
+    #    ユーザー・クライアント・developer の 3 段を見る
+    #    （→ suspension_reason/1）
     case Repo.one(query) do
-      {user, token_inserted_at} -> {Repo.preload(user, :client), token_inserted_at}
-      nil -> nil
+      {user, token_inserted_at} ->
+        {Repo.preload(user, client: :developer), token_inserted_at}
+
+      nil ->
+        nil
     end
   end
 
